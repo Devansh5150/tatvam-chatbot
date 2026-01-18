@@ -1,30 +1,58 @@
-# Tatvam landing website
+# Tatvam: Meet Your Own Answer 🛡️🕉️
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+A cinematic, spiritual landing page experience designed to bridge ancient wisdom with modern interactive technology. Built with **Next.js**, **Supabase**, and **Framer Motion**.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/devansh5150s-projects/v0-tatvam-landing-website)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/lUWMjltZ3MK)
+## ✨ Mystical Features
 
-## Overview
+- **🛡️ Cinematic Portal Experience**: A "Dr. Strange" inspired entry point featuring rotating spark rings and a meditative energy pulse.
+- **🌀 Sacred Geometry Mandala**: A high-fidelity, multi-layered SVG mandala with mathematically precise Hindi characters (ॐ, त, त्व, म, अ, सि).
+- **🌠 Interactive Invitation**: A 3D holographic "Invitation Card" that reacts to mouse movement, serving as a divine revelation post-sign-up.
+- **🛡️ Supabase Persistence**: Secured waitlist storage with server-side validation and duplicate prevention.
+- **📿 Souful Aesthetic**: Traditional Indian typography (Tiro Devanagari) paired with a minimalist, creamy desert palette.
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+## 🚀 Getting Started
 
-## Deployment
+### 1. Environment Configuration
+Create a `.env.local` file in the root directory:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-Your project is live at:
+### 2. Database Setup
+Run the following SQL in your Supabase SQL Editor to create the necessary table and security policies:
 
-**[https://vercel.com/devansh5150s-projects/v0-tatvam-landing-website](https://vercel.com/devansh5150s-projects/v0-tatvam-landing-website)**
+```sql
+create table waitlist (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  email text not null unique,
+  created_at timestamptz default now()
+);
 
-## Build your app
+-- Enable RLS and allow anonymous inserts
+alter table waitlist enable row level security;
 
-Continue building your app on:
+create policy "Allow anonymous inserts"
+on waitlist for insert
+to anon
+with check (true);
+```
 
-**[https://v0.app/chat/lUWMjltZ3MK](https://v0.app/chat/lUWMjltZ3MK)**
+### 3. Installation
+```bash
+npm install
+npm run dev
+```
 
-## How It Works
+## 🛠️ Technology Stack
+- **Framework**: Next.js 14+ (App Router)
+- **Styling**: Tailwind CSS
+- **Animations**: Framer Motion / CSS Keyframes
+- **Backend**: Supabase (Database & Auth)
+- **Validation**: Zod
+- **Icons**: Lucide React
+- **Typography**: Google Fonts (Tiro Devanagari Hindi, Crimson Text, Source Sans Pro)
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+---
+"You are the journey. You are the answer." 🛡️

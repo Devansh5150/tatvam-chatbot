@@ -12,8 +12,7 @@ interface WaitlistFormProps {
 export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormProps) {
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    message: ''
+    email: ''
   })
   const [submitted, setSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -46,7 +45,6 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
         throw new Error(data.error || 'Something went wrong')
       }
 
-      console.log('Form submitted successfully:', data)
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message)
@@ -121,20 +119,7 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
               />
             </div>
 
-            {!isInsidePortal && (
-              <div>
-                <label className="block text-sm mb-2 text-white font-bold">Message (optional)</label>
-                <textarea
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  rows={4}
-                  disabled={isLoading}
-                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent rounded-lg resize-none disabled:opacity-50"
-                  placeholder="Tell us what draws you to Tatvam..."
-                />
-              </div>
-            )}
+            {/* Message field removed for cleanup */}
           </div>
 
           <Button
