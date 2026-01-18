@@ -7,7 +7,13 @@ import PortalOverlay from './PortalOverlay';
 export default function HeroSection() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPortalOpen, setIsPortalOpen] = useState(false);
+  const [isJoined, setIsJoined] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const joined = localStorage.getItem('tatvam_waitlist_joined') === 'true';
+    if (joined) setIsJoined(true);
+  }, []);
 
   const toggleSound = () => {
     if (audioRef.current) {
@@ -20,6 +26,12 @@ export default function HeroSection() {
     }
   };
 
+  const handleJoinClick = () => {
+    if (!isJoined) {
+      setIsPortalOpen(true);
+    }
+  };
+
   return (
     <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
       <PortalOverlay isOpen={isPortalOpen} onClose={() => setIsPortalOpen(false)} />
@@ -27,32 +39,40 @@ export default function HeroSection() {
       {/* Top CTA Button */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 z-50">
         <div className="relative inline-flex items-center justify-center gap-4 group">
-          <div
-            className="absolute inset-0 duration-1000 opacity-60 transition-all bg-gradient-to-r from-accent via-primary to-accent rounded-xl blur-lg filter group-hover:opacity-100 group-hover:duration-200"
-          ></div>
+          {!isJoined && (
+            <div
+              className="absolute inset-0 duration-1000 opacity-60 transition-all bg-gradient-to-r from-accent via-primary to-accent rounded-xl blur-lg filter group-hover:opacity-100 group-hover:duration-200"
+            ></div>
+          )}
           <button
-            onClick={() => setIsPortalOpen(true)}
-            className="group relative inline-flex items-center justify-center text-base rounded-xl bg-[#1a1614] px-16 md:px-24 py-3 font-semibold text-white transition-all duration-200 hover:bg-[#25201d] hover:shadow-lg hover:-translate-y-0.5 hover:shadow-accent/20"
-            title="Join Us"
+            onClick={handleJoinClick}
+            disabled={isJoined}
+            className={`group relative inline-flex items-center justify-center text-base rounded-xl px-16 md:px-24 py-3 font-semibold transition-all duration-200 ${isJoined
+              ? 'bg-[#1a1614]/80 text-[#c9976e] border border-accent/20 cursor-default opacity-90 font-tiro py-4 text-xl'
+              : 'bg-[#1a1614] text-white hover:bg-[#25201d] hover:shadow-lg hover:-translate-y-0.5 hover:shadow-accent/20'
+              }`}
+            title={isJoined ? "Joined" : "Join Us"}
           >
-            Join Us!
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 10 10"
-              height="10"
-              width="10"
-              fill="none"
-              className="mt-0.5 ml-2 -mr-1 stroke-white stroke-2"
-            >
-              <path
-                d="M0 5h7"
-                className="transition opacity-0 group-hover:opacity-100"
-              ></path>
-              <path
-                d="M1 1l4 4-4 4"
-                className="transition group-hover:translate-x-[3px]"
-              ></path>
-            </svg>
+            {isJoined ? 'जल्द ही आपके पास' : 'Join Us!'}
+            {!isJoined && (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 10 10"
+                height="10"
+                width="10"
+                fill="none"
+                className="mt-0.5 ml-2 -mr-1 stroke-white stroke-2"
+              >
+                <path
+                  d="M0 5h7"
+                  className="transition opacity-0 group-hover:opacity-100"
+                ></path>
+                <path
+                  d="M1 1l4 4-4 4"
+                  className="transition group-hover:translate-x-[3px]"
+                ></path>
+              </svg>
+            )}
           </button>
         </div>
       </div>

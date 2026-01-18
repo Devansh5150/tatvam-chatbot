@@ -18,6 +18,11 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  React.useEffect(() => {
+    const isJoined = localStorage.getItem('tatvam_waitlist_joined') === 'true'
+    if (isJoined) setSubmitted(true)
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -45,6 +50,7 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
         throw new Error(data.error || 'Something went wrong')
       }
 
+      localStorage.setItem('tatvam_waitlist_joined', 'true')
       setSubmitted(true)
     } catch (err: any) {
       setError(err.message)
@@ -72,15 +78,25 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
       {submitted ? (
         <div className="flex flex-col items-center justify-center space-y-8 min-h-[400px]">
           <CometCardDemo />
-          {isInsidePortal && (
+
+          <div className="flex flex-col items-center space-y-4 w-full px-8">
             <Button
-              onClick={onClose}
-              variant="outline"
-              className="text-white border-white/20 hover:bg-white/10 transition-all font-light px-8"
+              disabled
+              className="w-full bg-[#1a1614]/80 text-[#c9976e] py-8 text-2xl font-tiro rounded-xl border border-accent/20 cursor-default opacity-90 shadow-none"
             >
-              Return to Landing
+              जल्द ही आपके पास
             </Button>
-          )}
+
+            {isInsidePortal && (
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                className="text-white/60 hover:text-white hover:bg-white/5 transition-all font-light tracking-widest text-xs uppercase"
+              >
+                Return to Landing
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
