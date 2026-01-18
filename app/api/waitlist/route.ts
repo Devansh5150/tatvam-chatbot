@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         if (error) {
             console.error('Supabase error:', error)
             return NextResponse.json(
-                { error: 'Failed to add to waitlist. It might be a duplicate email.' },
+                { error: `Supabase error: ${error.message}${error.hint ? ` (${error.hint})` : ''}` },
                 { status: 400 }
             )
         }
