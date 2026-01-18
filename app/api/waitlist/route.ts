@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, validateSupabaseConfig } from '@/lib/supabase'
 import { z } from 'zod'
 
 const waitlistSchema = z.object({
@@ -8,6 +8,17 @@ const waitlistSchema = z.object({
 })
 
 export async function POST(req: Request) {
+    // Validate that Supabase is configured
+    try {
+        validateSupabaseConfig()
+    } catch (error: any) {
+        console.error('Supabase configuration error:', error.message)
+        return NextResponse.json(
+            { error: 'Server configuration error. Please contact support.' },
+            { status: 500 }
+        )
+    }
+
     try {
         const body = await req.json()
 
