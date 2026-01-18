@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import HeroSection from '@/components/HeroSection'
 import WhatTatvamIs from '@/components/WhatTatvamIs'
 import HowItWorks from '@/components/HowItWorks'

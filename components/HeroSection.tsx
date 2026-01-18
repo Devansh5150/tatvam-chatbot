@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import PortalOverlay from './PortalOverlay';
 
@@ -10,7 +10,7 @@ export default function HeroSection() {
   const [isJoined, setIsJoined] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const joined = localStorage.getItem('tatvam_waitlist_joined') === 'true';
     if (joined) setIsJoined(true);
   }, []);

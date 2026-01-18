@@ -12,7 +12,7 @@ interface PortalOverlayProps {
 export default function PortalOverlay({ isOpen, onClose }: PortalOverlayProps) {
     const [shouldRender, setShouldRender] = useState(isOpen);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (isOpen) setShouldRender(true);
     }, [isOpen]);
 
