@@ -1,38 +1,41 @@
 export default function WhoItIsFor() {
   const situations = [
-    'When you face a difficult decision and need clarity',
-    'When grief or loss feels overwhelming',
-    'When you struggle with purpose or meaning',
-    'When conflict arises in your relationships',
-    'When fear or doubt paralyzes you',
-    'When success leaves you empty',
-    'When you feel lost or disconnected',
-    'When you need to understand yourself better',
-    'When the world feels chaotic or unjust',
-    'When you seek a deeper way of living'
+    'When loneliness becomes heavy',
+    'When duty and desire collide',
+    'When fear is louder than reason',
+    'When relationships feel unclear',
+    'When success or failure disturb the mind',
+    'When you need silence more than advice'
   ]
 
   return (
-    <section className="px-6 md:px-12 py-20 md:py-32 bg-secondary/30 border-t border-border">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <h2 className="font-serif text-4xl md:text-5xl font-600 leading-tight text-balance text-foreground">
-          Who It Is For
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <section className="px-6 md:px-12 py-24 md:py-32 bg-secondary/10 border-t border-border/50">
+      <div className="max-w-5xl mx-auto space-y-16">
+        <div className="space-y-4 text-center">
+          <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
+            For moments like these
+          </h2>
+          <div className="h-0.5 w-24 bg-accent/30 mx-auto" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {situations.map((situation, index) => (
-            <div key={index} className="flex gap-4">
-              <div className="flex-shrink-0 w-2 h-2 mt-2.5 bg-accent rounded-full"></div>
-              <p className="text-foreground leading-relaxed">
+            <div key={index} className="flex flex-col p-8 rounded-[2rem] bg-background border border-border/30 hover:shadow-xl transition-all duration-500 group">
+              <div className="w-10 h-10 rounded-full bg-accent/5 flex items-center justify-center mb-6 group-hover:bg-accent/10 transition-colors">
+                <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+              </div>
+              <p className="text-xl font-light text-foreground/90 leading-relaxed">
                 {situation}
               </p>
             </div>
           ))}
         </div>
 
-        <p className="text-lg text-foreground leading-relaxed pt-4 border-t border-border">
-          Tatvam is for anyone who seeks understanding. Not advice, not instruction—but the gentle wisdom that helps you see your own path more clearly.
-        </p>
+        <div className="max-w-2xl mx-auto text-center pt-8 border-t border-border/30">
+          <p className="text-lg text-muted-foreground font-light leading-relaxed">
+            Tatvam meets you where you are. Not with another voice telling you how to live, but with the quiet clarity of ages.
+          </p>
+        </div>
       </div>
     </section>
   )

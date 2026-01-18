@@ -1,12 +1,13 @@
 import React from "react"
 import type { Metadata } from 'next'
-import { Geist_Mono, Source_Sans_3, Crimson_Text } from 'next/font/google'
+import { Geist_Mono, Source_Sans_3, Crimson_Text, Tiro_Devanagari_Hindi } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 const _sourceSans = Source_Sans_3({ subsets: ["latin"], variable: '--font-sans' });
 const _crimsonText = Crimson_Text({ subsets: ["latin"], weight: ['400', '600'], variable: '--font-serif' });
+const _tiroDevanagari = Tiro_Devanagari_Hindi({ subsets: ["devanagari", "latin"], weight: ['400'], variable: '--font-tiro' });
 
 export const metadata: Metadata = {
   title: 'Tatvam — A Quiet Place to Reflect',
@@ -38,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${_sourceSans.variable} ${_crimsonText.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${_sourceSans.variable} ${_crimsonText.variable} ${_tiroDevanagari.variable} font-sans antialiased bg-background text-foreground`}>
         {children}
         <Analytics />
       </body>

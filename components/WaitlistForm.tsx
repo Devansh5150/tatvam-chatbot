@@ -1,104 +1,172 @@
 'use client'
 
-import React from "react"
-
-import { useState } from 'react'
+import React, { useState } from "react"
 import { Button } from '@/components/ui/button'
+import CometCardDemo from './comet-card-demo'
 
-export default function WaitlistForm() {
+interface WaitlistFormProps {
+  isInsidePortal?: boolean;
+  onClose?: () => void;
+}
+
+export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: ''
   })
   const [submitted, setSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+    if (error) setError(null)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send data to a backend
-    console.log('Form submitted:', formData)
-    setSubmitted(true)
-    setFormData({ name: '', email: '', message: '' })
-    
-    // Reset success message after 5 seconds
-    setTimeout(() => setSubmitted(false), 5000)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong')
+      }
+
+      console.log('Form submitted successfully:', data)
+      setSubmitted(true)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  return (
-    <section id="waitlist-form" className="px-6 md:px-12 py-20 md:py-32 bg-card border-t border-border">
-      <div className="max-w-2xl mx-auto space-y-8">
+  const formContent = (
+    <div className={`max-w-2xl mx-auto ${isInsidePortal ? 'space-y-6' : 'space-y-12'}`}>
+      {!submitted && (
         <div className="text-center space-y-4">
-          <h2 className="font-serif text-4xl md:text-5xl font-600 leading-tight text-balance text-foreground">
-            Join the Waitlist
+          <h2 className={`font-serif tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] ${isInsidePortal ? 'text-4xl md:text-5xl' : 'text-4xl md:text-5xl font-medium'}`}>
+            {isInsidePortal ? 'Join the Inner Circle' : 'Tatvam is being shaped with care'}
           </h2>
-          <p className="text-foreground text-lg">
-            Be among the first to experience Tatvam when it opens.
+          <p className={`text-white/90 font-light leading-relaxed drop-shadow-sm ${isInsidePortal ? 'text-xl' : 'text-xl'}`}>
+            {isInsidePortal
+              ? 'Step through the mirror and walk with us.'
+              : 'If this space feels like something you need, walk with us from the beginning.'}
           </p>
+          <div className="h-0.5 w-16 bg-accent/50 mx-auto" />
         </div>
+      )}
 
-        {submitted ? (
-          <div className="bg-secondary border border-border p-8 text-center space-y-2">
-            <p className="text-foreground text-lg">Thank you for joining, {formData.name}!</p>
-            <p className="text-foreground">We'll be in touch at {formData.email}</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+      {submitted ? (
+        <div className="flex flex-col items-center justify-center space-y-8 min-h-[400px]">
+          <CometCardDemo />
+          {isInsidePortal && (
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="text-white border-white/20 hover:bg-white/10 transition-all font-light px-8"
+            >
+              Return to Landing
+            </Button>
+          )}
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-xl text-destructive text-sm text-center animate-shake">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm mb-2 text-foreground font-medium">Name</label>
+              <label className="block text-sm mb-2 text-white font-bold tracking-wide uppercase opacity-90">Name</label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent rounded-lg"
-                placeholder="Your name"
+                disabled={isLoading}
+                className="w-full px-4 py-4 bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl transition-all text-lg disabled:opacity-50"
+                placeholder="What shall we call you?"
               />
             </div>
 
             <div>
-              <label className="block text-sm mb-2 text-foreground font-medium">Email</label>
+              <label className="block text-sm mb-2 text-white font-bold tracking-wide uppercase opacity-90">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent rounded-lg"
-                placeholder="your@email.com"
+                disabled={isLoading}
+                className="w-full px-4 py-4 bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl transition-all text-lg disabled:opacity-50"
+                placeholder="Where can we reach you?"
               />
             </div>
 
-            <div>
-              <label className="block text-sm mb-2 text-foreground font-medium">Message (optional)</label>
-              <textarea
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                rows={4}
-                className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent rounded-lg resize-none"
-                placeholder="Tell us what draws you to Tatvam..."
-              />
-            </div>
+            {!isInsidePortal && (
+              <div>
+                <label className="block text-sm mb-2 text-white font-bold">Message (optional)</label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  rows={4}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 bg-secondary border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent rounded-lg resize-none disabled:opacity-50"
+                  placeholder="Tell us what draws you to Tatvam..."
+                />
+              </div>
+            )}
+          </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-accent text-accent-foreground hover:bg-primary py-3 font-600 rounded-lg"
-            >
-              Join the Waitlist
-            </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-accent text-[#1a1614] hover:bg-white py-8 text-xl font-black rounded-xl shadow-[0_0_30px_rgba(201,151,110,0.3)] transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-70"
+          >
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 border-2 border-[#1a1614] border-t-transparent rounded-full animate-spin" />
+                <span>CONNECTING...</span>
+              </div>
+            ) : (
+              'JOIN THE WAITLIST'
+            )}
+          </Button>
 
-            <p className="text-xs text-foreground text-center">
-              We respect your privacy. Your information will never be shared.
-            </p>
-          </form>
-        )}
-      </div>
+          <p className="text-xs text-white/60 text-center tracking-[0.2em] font-medium uppercase">
+            Your journey begins in silence.
+          </p>
+        </form>
+      )}
+    </div>
+  )
+
+  if (isInsidePortal) {
+    return formContent
+  }
+
+  return (
+    <section id="waitlist-form" className="px-6 md:px-12 py-24 md:py-32 bg-background border-t border-border/50">
+      {formContent}
     </section>
   )
 }

@@ -1,37 +1,145 @@
 'use client';
 
-import { Button } from '@/components/ui/button'
+import { useState, useRef } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
+import PortalOverlay from './PortalOverlay';
 
 export default function HeroSection() {
-  const handleScrollToWaitlist = () => {
-    const element = document.getElementById('waitlist-form')
-    element?.scrollIntoView({ behavior: 'smooth' })
-  }
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPortalOpen, setIsPortalOpen] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const toggleSound = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   return (
-    <section className="min-h-screen flex items-center justify-center px-6 md:px-12 py-20 md:py-32 bg-gradient-to-b from-background to-secondary/30">
-      <div className="max-w-4xl w-full text-center space-y-8">
-        <div className="space-y-6">
-          <div className="flex justify-center mb-8">
-            <img 
-              src="/logo.png" 
-              alt="Tatvam" 
-              className="h-32 w-auto"
-            />
-          </div>
-          <h1 className="font-serif text-5xl md:text-6xl font-600 leading-tight text-balance text-foreground">
-            A quiet place to reflect
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed text-balance max-w-2xl mx-auto">
-            Guidance from the Bhagavad Gita, Ramayana, and Mahabharata — not as advice, but as understanding.
-          </p>
+    <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+      <PortalOverlay isOpen={isPortalOpen} onClose={() => setIsPortalOpen(false)} />
+
+      {/* Top CTA Button */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-50">
+        <div className="relative inline-flex items-center justify-center gap-4 group">
+          <div
+            className="absolute inset-0 duration-1000 opacity-60 transition-all bg-gradient-to-r from-accent via-primary to-accent rounded-xl blur-lg filter group-hover:opacity-100 group-hover:duration-200"
+          ></div>
+          <button
+            onClick={() => setIsPortalOpen(true)}
+            className="group relative inline-flex items-center justify-center text-base rounded-xl bg-[#1a1614] px-16 md:px-24 py-3 font-semibold text-white transition-all duration-200 hover:bg-[#25201d] hover:shadow-lg hover:-translate-y-0.5 hover:shadow-accent/20"
+            title="Join Us"
+          >
+            Join Us!
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 10 10"
+              height="10"
+              width="10"
+              fill="none"
+              className="mt-0.5 ml-2 -mr-1 stroke-white stroke-2"
+            >
+              <path
+                d="M0 5h7"
+                className="transition opacity-0 group-hover:opacity-100"
+              ></path>
+              <path
+                d="M1 1l4 4-4 4"
+                className="transition group-hover:translate-x-[3px]"
+              ></path>
+            </svg>
+          </button>
         </div>
-        <Button
-          onClick={handleScrollToWaitlist}
-          className="mx-auto bg-accent text-accent-foreground hover:bg-primary px-8 py-6 text-base rounded-full font-medium"
-        >
-          Join the Waitlist
-        </Button>
+      </div>
+
+      {/* Meditative Audio Player */}
+      <audio
+        ref={audioRef}
+        src="/om-chant.mp3"
+        loop
+      />
+
+      {/* Floating Sound Toggle */}
+      <button
+        onClick={toggleSound}
+        className={`fixed bottom-10 right-10 z-50 flex items-center gap-3 px-6 py-4 rounded-full transition-all duration-500 group shadow-[0_10px_40px_rgba(0,0,0,0.4)] border backdrop-blur-md ${isPlaying
+          ? 'bg-accent/90 border-accent/20 text-white'
+          : 'bg-[#1a1614]/80 border-white/10 text-white'
+          } hover:scale-105 active:scale-95`}
+      >
+        <div className="relative">
+          {isPlaying ? (
+            <Volume2 className="w-6 h-6 text-accent animate-pulse" />
+          ) : (
+            <VolumeX className="w-6 h-6 text-white/40" />
+          )}
+          {isPlaying && (
+            <span className="absolute -inset-2 rounded-full border border-accent/30 animate-ping" />
+          )}
+        </div>
+        <span className="text-sm font-light tracking-widest text-white/80 uppercase">
+          {isPlaying ? 'Energy Active' : 'Engage Energy'}
+        </span>
+      </button>
+
+      {/* Full-Screen Blurred Background */}
+      <div className="absolute inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center scale-110"
+          style={{
+            backgroundImage: "url('/krishna-arjun.png')",
+            filter: 'blur(15px)',
+          }}
+        />
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+
+      {/* Hero Content */}
+      <div className="relative z-10 flex flex-col items-center space-y-0 max-w-4xl px-6 -mt-8 md:-mt-12">
+        {/* Sharpened Logo at Top */}
+        <div className="transition-transform duration-500 hover:scale-105 -mb-10 md:-mb-16 lg:-mb-24 z-20">
+          <img
+            src="/logo_v3.png"
+            alt="Tatvam"
+            className="w-full max-w-[25rem] md:max-w-[45rem] lg:max-w-[55rem] h-auto drop-shadow-md"
+          />
+        </div>
+
+        {/* Themed Description Box */}
+        <div className="w-full max-w-3xl p-10 rounded-3xl bg-white/[0.03] backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] space-y-8 relative group overflow-hidden">
+          {/* Decorative Corner */}
+          <div className="absolute top-0 right-0 w-24 h-24 bg-accent/5 blur-3xl rounded-full -translate-y-12 translate-x-12 group-hover:bg-accent/10 transition-colors duration-700" />
+
+          <div className="flex flex-col items-center space-y-6">
+            <div className="h-0.5 w-16 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50" />
+
+            <div className="space-y-6 text-center">
+              <p className="text-3xl md:text-4xl lg:text-5xl text-accent font-tiro leading-relaxed tracking-wide">
+                जहाँ शब्द नहीं, अर्थ बोलता है.
+              </p>
+
+              <div className="space-y-4">
+                <p className="text-lg md:text-xl text-white/90 font-light tracking-[0.15em] uppercase leading-relaxed font-sans">
+                  Wisdom from the Gita, Ramayana, and Mahabharata—
+                </p>
+                <div className="flex items-center justify-center gap-4 text-white/60">
+                  <span className="w-8 h-px bg-white/20" />
+                  <p className="text-base md:text-lg italic font-tiro tracking-wider">
+                    shlok, meaning, and reflection, offered gently, without advice.
+                  </p>
+                  <span className="w-8 h-px bg-white/20" />
+                </div>
+              </div>
+            </div>
+
+            <div className="h-0.5 w-16 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50" />
+          </div>
+        </div>
       </div>
     </section>
   )

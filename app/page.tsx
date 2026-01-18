@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button'
 import HeroSection from '@/components/HeroSection'
 import WhatTatvamIs from '@/components/WhatTatvamIs'
 import HowItWorks from '@/components/HowItWorks'
-import SampleExperience from '@/components/SampleExperience'
+import WhatTatvamIsNot from '@/components/WhatTatvamIsNot'
 import WhoItIsFor from '@/components/WhoItIsFor'
-import WaitlistForm from '@/components/WaitlistForm'
+import TatvamValues from '@/components/TatvamValues'
+import TatvamSources from '@/components/TatvamSources'
 import Footer from '@/components/Footer'
 
 export default function Home() {
@@ -16,9 +17,10 @@ export default function Home() {
       <HeroSection />
       <WhatTatvamIs />
       <HowItWorks />
-      <SampleExperience />
+      <WhatTatvamIsNot />
       <WhoItIsFor />
-      <WaitlistForm />
+      <TatvamValues />
+      <TatvamSources />
       <Footer />
     </div>
   )

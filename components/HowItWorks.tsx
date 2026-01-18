@@ -1,48 +1,53 @@
 export default function HowItWorks() {
   const steps = [
     {
-      number: 1,
-      title: 'You share what you face',
-      description: 'Tell Tatvam about the situation, challenge, or question on your mind.'
+      number: '01',
+      title: 'You share your state of mind',
+      description: 'Write freely—confusion, loneliness, fear, or a question about life. Tatvam listens without judgment.',
+      icon: '✍️'
     },
     {
-      number: 2,
-      title: 'A shlok is offered',
-      description: 'We present a verse from the scriptures that speaks directly to your moment.'
+      number: '02',
+      title: 'A relevant shlok appears',
+      description: 'Chosen from the Gita, Ramayana, or Mahabharata to illuminate your present moment.',
+      icon: '📜'
     },
     {
-      number: 3,
-      title: 'Sanskrit + Hindi + English + audio',
-      description: 'Experience the wisdom in its original form, translated meanings, and listened voice.'
+      number: '03',
+      title: 'You receive it in three layers',
+      description: 'Sanskrit (original voice), Hindi (living meaning), and English (present relevance).',
+      icon: '🧘'
     },
     {
-      number: 4,
-      title: 'Gentle reflection',
-      description: 'Contemplate the verse and how it illuminates your own understanding.'
+      number: '04',
+      title: 'A gentle reflection',
+      description: 'Not advice—only a doorway to awareness. A single line to sit with in silence.',
+      icon: '✨'
     }
   ]
 
   return (
-    <section className="px-6 md:px-12 py-20 md:py-32 bg-secondary/40 border-t border-border">
-      <div className="max-w-4xl mx-auto space-y-12">
-        <h2 className="font-serif text-4xl md:text-5xl font-600 leading-tight text-balance text-foreground">
-          How It Works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+    <section className="px-6 md:px-12 py-24 md:py-32 bg-secondary/20 border-t border-border/50">
+      <div className="max-w-6xl mx-auto space-y-20">
+        <div className="space-y-4 text-center">
+          <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
+            How it Works
+          </h2>
+          <p className="text-muted-foreground text-lg font-light tracking-wide uppercase">4 Simple Steps</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step) => (
-            <div key={step.number} className="space-y-3">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center border-2 border-accent text-accent rounded-full">
-                  <span className="font-serif text-sm font-600">{step.number}</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-serif text-xl font-600 mb-2 text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="text-foreground leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
+            <div key={step.number} className="relative group p-8 rounded-3xl bg-background border border-border/50 hover:border-accent/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:-translate-y-1">
+              <div className="text-4xl mb-6">{step.icon}</div>
+              <div className="space-y-4">
+                <span className="text-xs font-mono text-accent/60 tracking-tighter block">{step.number}</span>
+                <h3 className="font-serif text-xl font-medium text-foreground leading-tight">
+                  {step.title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed font-light text-sm">
+                  {step.description}
+                </p>
               </div>
             </div>
           ))}
