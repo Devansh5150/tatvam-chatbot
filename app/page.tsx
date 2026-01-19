@@ -7,6 +7,7 @@ import WhatTatvamIsNot from '@/components/WhatTatvamIsNot'
 import WhoItIsFor from '@/components/WhoItIsFor'
 import TatvamValues from '@/components/TatvamValues'
 import TatvamSources from '@/components/TatvamSources'
+import TatvamPricing from '@/components/TatvamPricing'
 import Footer from '@/components/Footer'
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
       <WhoItIsFor />
       <TatvamValues />
       <TatvamSources />
+      <TatvamPricing />
       <Footer />
     </div>
   )
