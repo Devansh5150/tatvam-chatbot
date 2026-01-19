@@ -68,54 +68,54 @@ export default function TatvamPricing() {
     ]
 
     return (
-        <section id="pricing" className="px-6 md:px-12 py-24 md:py-32 bg-background border-t border-border/50 relative overflow-hidden">
+        <section id="pricing" className="px-6 md:px-12 py-24 md:py-32 bg-[#141110] border-t border-white/5 relative overflow-hidden">
             {/* Background Ambience */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/5 blur-[150px] rounded-full pointer-events-none" />
 
             <div className="max-w-6xl mx-auto space-y-20 relative z-10">
                 <div className="space-y-6 text-center">
-                    <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-foreground">
+                    <h2 className="font-serif text-4xl md:text-5xl font-medium tracking-tight text-white">
                         Presence & Support
                     </h2>
                     <div className="h-px w-24 bg-accent/30 mx-auto" />
-                    <p className="text-foreground/60 font-light tracking-widest uppercase text-sm">Choose your path of reflection</p>
+                    <p className="text-white/40 font-light tracking-widest uppercase text-sm">Choose your path of reflection</p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {tiers.map((tier) => (
                         <div
                             key={tier.id}
                             className={`relative group flex flex-col p-10 rounded-[2.5rem] transition-all duration-700 border ${tier.isPremium
-                                    ? 'bg-accent/[0.03] border-accent/20 shadow-[0_0_50px_rgba(201,151,110,0.05)]'
-                                    : 'bg-white/[0.01] border-white/5'
+                                ? 'bg-accent/[0.05] border-accent/20 shadow-[0_0_50px_rgba(201,151,110,0.05)]'
+                                : 'bg-white/[0.02] border-white/10'
                                 } hover:border-accent/40`}
                         >
                             <div className="flex flex-col items-center text-center space-y-6 mb-10">
                                 <Bindu intensity={tier.isPremium ? 1 : tier.isMid ? 0.6 : 0.3} />
                                 <div className="space-y-1">
-                                    <h3 className="font-tiro text-3xl tracking-wider text-foreground">{tier.name}</h3>
-                                    <p className="font-serif italic text-accent/80">{tier.subtitle}</p>
+                                    <h3 className="font-tiro text-3xl tracking-wider text-white">{tier.name}</h3>
+                                    <p className="font-serif italic text-accent">{tier.subtitle}</p>
                                 </div>
                             </div>
 
                             {tier.description && (
-                                <p className="text-sm font-light leading-relaxed text-foreground/70 text-center mb-8 italic">
+                                <p className="text-sm font-light leading-relaxed text-white/70 text-center mb-8 italic">
                                     {tier.description}
                                 </p>
                             )}
 
                             <ul className="space-y-5 flex-grow mb-10">
                                 {tier.features.map((feature, idx) => (
-                                    <li key={idx} className="flex items-start gap-3 text-sm font-light text-foreground/80 leading-snug">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-accent/40 mt-1.5 shrink-0" />
+                                    <li key={idx} className="flex items-start gap-3 text-sm font-light text-white/80 leading-snug">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
                                         <span>{feature}</span>
                                     </li>
                                 ))}
                             </ul>
 
                             {tier.ethicalNote && (
-                                <div className="mb-10 p-6 rounded-2xl bg-[#1a1614]/40 border border-white/5 space-y-3">
-                                    <p className="text-[11px] leading-relaxed text-accent/60 font-light italic">
+                                <div className="mb-10 p-6 rounded-2xl bg-black/40 border border-white/5 space-y-3">
+                                    <p className="text-[13px] leading-relaxed text-accent/90 font-light italic">
                                         {tier.ethicalNote}
                                     </p>
                                 </div>
@@ -123,8 +123,8 @@ export default function TatvamPricing() {
 
                             <Button
                                 className={`w-full py-7 text-lg font-tiro rounded-xl transition-all duration-500 ${tier.isPremium
-                                        ? 'bg-accent text-[#1a1614] hover:bg-white shadow-[0_0_30px_rgba(201,151,110,0.2)]'
-                                        : 'bg-[#1a1614] text-white border border-white/10 hover:border-accent/40'
+                                    ? 'bg-accent text-[#1a1614] hover:bg-white shadow-[0_0_30px_rgba(201,151,110,0.3)]'
+                                    : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-accent/40'
                                     }`}
                             >
                                 {tier.cta}
