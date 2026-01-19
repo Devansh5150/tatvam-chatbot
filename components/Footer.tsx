@@ -34,7 +34,7 @@ export default function Footer() {
           </div>
 
           <div className="pt-8 border-t border-border text-center text-xs text-foreground">
-            <p>© 2024 Tatvam. All rights reserved. Made with reflection. Innovation by Devansh and Nandini</p>
+            <p>© 2026 Tatvam. All rights reserved. Made with reflection. Innovation by Devansh and Nandini</p>
           </div>
         </div>
       </div>
