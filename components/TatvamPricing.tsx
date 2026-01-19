@@ -39,7 +39,7 @@ export default function TatvamPricing() {
             price: 'Deeper Seeking',
             features: [
                 'Everything in Praja',
-                'Shlok listening (Hindi & English audio)',
+                'Shlok listening',
                 'Deeper explanations',
                 'Save favorite shloks',
                 'Theme-based paths'
@@ -55,7 +55,7 @@ export default function TatvamPricing() {
             description: 'Experience Tatvam as a gentle presence. A calm voice arises from the Bindu — the circle of inner stillness — sharing wisdom from the scriptures, not as command, but as companionship.',
             features: [
                 'Everything in Praja and Purohit',
-                'Immersive Bindu Mode (glowing circle, no form, no avatar)',
+                'Immersive Bindu Mode',
                 'Voice conversations based on shlok',
                 'Guided listening sessions',
                 'Personal reflection journal',
