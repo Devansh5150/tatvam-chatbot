@@ -60,29 +60,31 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
   }
 
   const formContent = (
-    <div className={`max-w-2xl mx-auto ${isInsidePortal ? 'space-y-6' : 'space-y-12'}`}>
+    <div className={`max-w-2xl mx-auto ${isInsidePortal ? 'space-y-4 md:space-y-6' : 'space-y-8 md:space-y-12'}`}>
       {!submitted && (
-        <div className="text-center space-y-4">
-          <h2 className={`font-serif tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] ${isInsidePortal ? 'text-4xl md:text-5xl' : 'text-4xl md:text-5xl font-medium'}`}>
+        <div className="text-center space-y-2 md:space-y-4">
+          <h2 className={`font-serif tracking-tight text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] ${isInsidePortal ? 'text-2xl md:text-5xl' : 'text-3xl md:text-5xl font-medium'}`}>
             {isInsidePortal ? 'Join the Inner Circle' : 'Tatvam is being shaped with care'}
           </h2>
-          <p className={`text-white/90 font-light leading-relaxed drop-shadow-sm ${isInsidePortal ? 'text-xl' : 'text-xl'}`}>
+          <p className={`text-white/90 font-light leading-relaxed drop-shadow-sm ${isInsidePortal ? 'text-base md:text-xl' : 'text-lg md:text-xl'}`}>
             {isInsidePortal
               ? 'Step through the mirror and walk with us.'
               : 'If this space feels like something you need, walk with us from the beginning.'}
           </p>
-          <div className="h-0.5 w-16 bg-accent/50 mx-auto" />
+          <div className="h-0.5 w-12 md:w-16 bg-accent/50 mx-auto" />
         </div>
       )}
 
       {submitted ? (
-        <div className="flex flex-col items-center justify-center space-y-8 min-h-[400px]">
-          <CometCardDemo />
+        <div className="flex flex-col items-center justify-center space-y-6 md:space-y-8 min-h-[300px] md:min-h-[400px]">
+          <div className="scale-75 md:scale-100">
+            <CometCardDemo />
+          </div>
 
-          <div className="flex flex-col items-center space-y-4 w-full px-8">
+          <div className="flex flex-col items-center space-y-3 md:space-y-4 w-full px-4 md:px-8">
             <Button
               disabled
-              className="w-full bg-[#1a1614]/80 text-[#c9976e] py-8 text-2xl font-tiro rounded-xl border border-accent/20 cursor-default opacity-90 shadow-none"
+              className="w-full bg-[#1a1614]/80 text-[#c9976e] py-6 md:py-8 text-xl md:text-2xl font-tiro rounded-xl border border-accent/20 cursor-default opacity-90 shadow-none"
             >
               जल्द ही आपके पास
             </Button>
@@ -91,7 +93,7 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
               <Button
                 onClick={onClose}
                 variant="ghost"
-                className="text-white/60 hover:text-white hover:bg-white/5 transition-all font-light tracking-widest text-xs uppercase"
+                className="text-white/60 hover:text-white hover:bg-white/5 transition-all font-light tracking-widest text-[10px] md:text-xs uppercase"
               >
                 Return to Landing
               </Button>
@@ -99,16 +101,16 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-xl text-destructive text-sm text-center animate-shake">
               {error}
             </div>
           )}
 
-          <div className="space-y-5">
+          <div className="space-y-4 md:space-y-5">
             <div>
-              <label className="block text-sm mb-2 text-white font-bold tracking-wide uppercase opacity-90">Name</label>
+              <label className="block text-[10px] md:text-sm mb-1 md:mb-2 text-white font-bold tracking-wide uppercase opacity-90">Name</label>
               <input
                 type="text"
                 name="name"
@@ -116,13 +118,13 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
                 onChange={handleChange}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-4 bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl transition-all text-lg disabled:opacity-50"
+                className="w-full px-3 md:px-4 py-3 md:py-4 bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl transition-all text-base md:text-lg disabled:opacity-50"
                 placeholder="What shall we call you?"
               />
             </div>
 
             <div>
-              <label className="block text-sm mb-2 text-white font-bold tracking-wide uppercase opacity-90">Email</label>
+              <label className="block text-[10px] md:text-sm mb-1 md:mb-2 text-white font-bold tracking-wide uppercase opacity-90">Email</label>
               <input
                 type="email"
                 name="email"
@@ -130,18 +132,16 @@ export default function WaitlistForm({ isInsidePortal, onClose }: WaitlistFormPr
                 onChange={handleChange}
                 required
                 disabled={isLoading}
-                className="w-full px-4 py-4 bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl transition-all text-lg disabled:opacity-50"
+                className="w-full px-3 md:px-4 py-3 md:py-4 bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-accent rounded-xl transition-all text-base md:text-lg disabled:opacity-50"
                 placeholder="Where can we reach you?"
               />
             </div>
-
-            {/* Message field removed for cleanup */}
           </div>
 
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-accent text-[#1a1614] hover:bg-white py-8 text-xl font-black rounded-xl shadow-[0_0_30px_rgba(201,151,110,0.3)] transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-70"
+            className="w-full bg-accent text-[#1a1614] hover:bg-white py-6 md:py-8 text-lg md:text-xl font-black rounded-xl shadow-[0_0_30px_rgba(201,151,110,0.3)] transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-70"
           >
             {isLoading ? (
               <div className="flex items-center space-x-2">

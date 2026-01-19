@@ -31,15 +31,15 @@ export default function PortalOverlay({ isOpen, onClose }: PortalOverlayProps) {
             <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" />
 
             {/* Portal Container */}
-            <div className={`relative w-[90vmin] h-[90vmin] max-w-[800px] max-h-[800px] flex items-center justify-center transition-all duration-1000 ${isOpen ? 'animate-portal-open scale-100' : 'scale-0'}`}>
+            <div className={`relative w-[95vmin] h-[95vmin] md:w-[90vmin] md:h-[90vmin] max-w-[800px] max-h-[800px] flex items-center justify-center transition-all duration-1000 ${isOpen ? 'animate-portal-open scale-100' : 'scale-0'}`}>
 
                 {/* Rotating Spark Rings */}
                 <div className="absolute inset-0 animate-portal-spin origin-center">
                     {/* Ring 1 - Intense Spark */}
-                    <div className="absolute inset-0 rounded-full border-[6px] border-accent/40 shadow-[0_0_40px_rgba(201,151,110,0.8),_inset_0_0_40px_rgba(201,151,110,0.8)] blur-[2px] animate-spark-flicker" />
+                    <div className="absolute inset-0 rounded-full md:rounded-full border-[4px] md:border-[6px] border-accent/40 shadow-[0_0_20px_rgba(201,151,110,0.6),_inset_0_0_20px_rgba(201,151,110,0.6)] md:shadow-[0_0_40px_rgba(201,151,110,0.8),_inset_0_0_40px_rgba(201,151,110,0.8)] blur-[2px] animate-spark-flicker" />
 
                     {/* Ring 2 - Outer Glow */}
-                    <div className="absolute -inset-4 rounded-full border-2 border-primary/20 shadow-[0_0_60px_rgba(184,149,109,0.3)] blur-[4px]" />
+                    <div className="absolute -inset-2 md:-inset-4 rounded-full border-2 border-primary/20 shadow-[0_0_30px_rgba(184,149,109,0.2)] md:shadow-[0_0_60px_rgba(184,149,109,0.3)] blur-[4px]" />
 
                     {/* Spark Particles (Simulated with rotating dots) */}
                     {[...Array(12)].map((_, i) => (
@@ -103,8 +103,8 @@ export default function PortalOverlay({ isOpen, onClose }: PortalOverlayProps) {
                 </div>
 
                 {/* Portal Interior */}
-                <div className="relative z-10 w-full h-full rounded-full overflow-hidden flex items-center justify-center p-8 bg-[#1a1614]/40 border border-white/5 shadow-inner">
-                    <div className="w-full h-full flex items-center justify-center px-4">
+                <div className="relative z-10 w-full h-full rounded-[40px] md:rounded-full overflow-hidden flex items-center justify-center p-4 md:p-12 bg-[#1a1614]/60 border border-white/10 shadow-inner backdrop-blur-md">
+                    <div className="w-full h-full flex items-center justify-center px-2 md:px-4">
                         <WaitlistForm isInsidePortal onClose={onClose} />
                     </div>
                 </div>
@@ -112,7 +112,7 @@ export default function PortalOverlay({ isOpen, onClose }: PortalOverlayProps) {
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute -top-12 right-0 md:-right-12 text-white/40 hover:text-white transition-colors p-2"
+                    className="absolute -top-12 right-4 md:-top-12 md:right-0 lg:-right-12 text-white/40 hover:text-white transition-colors p-2"
                 >
                     <X className="w-8 h-8" />
                 </button>
