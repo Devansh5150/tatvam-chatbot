@@ -71,7 +71,7 @@ export default function TatvamPricing() {
     ]
 
     return (
-        <section id="pricing" className="px-6 md:px-12 py-48 md:py-72 bg-[#080706] relative overflow-hidden">
+        <section id="pricing" className="px-6 md:px-12 py-48 md:py-72 relative overflow-hidden">
             {/* The Space Effect - Higher Density */}
             <StarsBackground
                 starDensity={0.0004}
@@ -183,8 +183,8 @@ export default function TatvamPricing() {
                                     <Button
                                         disabled
                                         className={`w-full py-12 rounded-[30px] text-xs font-black tracking-[0.5em] uppercase transition-all duration-700 opacity-50 cursor-not-allowed ${tier.isPremium
-                                                ? 'bg-accent/40 text-[#080706] border-accent/20'
-                                                : 'bg-white/5 text-white/40 border border-white/20'
+                                            ? 'bg-accent/40 text-[#080706] border-accent/20'
+                                            : 'bg-white/5 text-white/40 border border-white/20'
                                             }`}
                                     >
                                         Coming Soon

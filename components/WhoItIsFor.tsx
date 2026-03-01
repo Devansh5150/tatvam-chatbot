@@ -9,7 +9,7 @@ export default function WhoItIsFor() {
   ]
 
   return (
-    <section className="px-6 md:px-12 py-24 md:py-32 bg-secondary/10 border-t border-border/50">
+    <section className="px-6 md:px-12 py-24 md:py-32 relative">
       <div className="max-w-5xl mx-auto space-y-16">
         <div className="space-y-4 text-center">
           <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
@@ -20,8 +20,8 @@ export default function WhoItIsFor() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {situations.map((situation, index) => (
-            <div key={index} className="flex flex-col p-8 rounded-[2rem] bg-background border border-border/30 hover:shadow-xl transition-all duration-500 group">
-              <div className="w-10 h-10 rounded-full bg-accent/5 flex items-center justify-center mb-6 group-hover:bg-accent/10 transition-colors">
+            <div key={index} className="flex flex-col p-8 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:shadow-xl hover:border-accent/20 transition-all duration-500 group backdrop-blur-sm">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-6 group-hover:bg-accent/10 transition-colors backdrop-blur-sm">
                 <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
               </div>
               <p className="text-xl font-light text-foreground/90 leading-relaxed">

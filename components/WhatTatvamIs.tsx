@@ -1,6 +1,6 @@
 export default function WhatTatvamIs() {
   return (
-    <section className="px-6 md:px-12 py-24 md:py-32 bg-background border-t border-border/50">
+    <section className="px-6 md:px-12 py-24 md:py-32 relative">
       <div className="max-w-4xl mx-auto space-y-16">
         <div className="space-y-6 text-center">
           <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight text-foreground">
@@ -19,7 +19,7 @@ export default function WhatTatvamIs() {
             </p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 p-8 rounded-3xl space-y-6">
+          <div className="relative group p-8 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-accent/30 transition-all duration-500 shadow-sm backdrop-blur-md hover:shadow-xl hover:-translate-y-1 space-y-6">
             <h3 className="font-serif text-2xl text-accent">What you receive:</h3>
             <ul className="space-y-4">
               {[

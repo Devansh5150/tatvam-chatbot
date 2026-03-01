@@ -8,7 +8,7 @@ export default function TatvamValues() {
     ]
 
     return (
-        <section className="px-6 md:px-12 py-24 md:py-32 bg-background border-t border-border/50">
+        <section className="px-6 md:px-12 py-24 md:py-32 relative">
             <div className="max-w-4xl mx-auto space-y-16">
                 <div className="space-y-4 text-center">
                     <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
@@ -22,7 +22,7 @@ export default function TatvamValues() {
 
                     {values.map((value, idx) => (
                         <div key={idx} className="relative pl-12 pb-16 group last:pb-0">
-                            <div className="absolute left-0 top-1.5 w-9 h-9 rounded-full bg-background border border-accent/40 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                            <div className="absolute left-0 top-1.5 w-9 h-9 rounded-full bg-white/5 border border-accent/40 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 backdrop-blur-sm">
                                 <div className="w-2 h-2 bg-accent rounded-full" />
                             </div>
                             <div className="space-y-2">

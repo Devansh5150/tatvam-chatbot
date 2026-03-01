@@ -160,6 +160,23 @@ export default function HeroSection() {
             <div className="h-0.5 w-16 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50" />
           </div>
         </div>
+
+        {/* CTA Buttons Row */}
+        <div className="flex flex-col md:flex-row items-center gap-4 mt-10">
+          <a
+            href="/login"
+            className="inline-flex items-center justify-center px-10 py-4 rounded-xl bg-accent text-[#1a1614] font-bold tracking-[0.15em] uppercase text-sm transition-all duration-300 hover:bg-white hover:scale-105 shadow-[0_10px_30px_rgba(201,151,110,0.3)]"
+          >
+            Begin Reflection
+          </a>
+
+          <a
+            href="/sneak-peek"
+            className="inline-flex items-center justify-center px-10 py-4 rounded-xl bg-white/5 text-white border border-white/20 font-bold tracking-[0.15em] uppercase text-sm transition-all duration-300 hover:bg-white/10 hover:border-accent/40 hover:scale-105"
+          >
+            Sneak Peek
+          </a>
+        </div>
       </div>
     </section>
   )

@@ -27,7 +27,7 @@ export default function HowItWorks() {
   ]
 
   return (
-    <section className="px-6 md:px-12 py-24 md:py-32 bg-secondary/20 border-t border-border/50">
+    <section className="px-6 md:px-12 py-24 md:py-32 relative">
       <div className="max-w-6xl mx-auto space-y-20">
         <div className="space-y-4 text-center">
           <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
@@ -38,7 +38,7 @@ export default function HowItWorks() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step) => (
-            <div key={step.number} className="relative group p-8 rounded-3xl bg-background border border-border/50 hover:border-accent/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:-translate-y-1">
+            <div key={step.number} className="relative group p-8 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-accent/30 transition-all duration-500 shadow-sm backdrop-blur-md hover:shadow-xl hover:-translate-y-1">
               <div className="text-4xl mb-6">{step.icon}</div>
               <div className="space-y-4">
                 <span className="text-xs font-mono text-accent/60 tracking-tighter block">{step.number}</span>
