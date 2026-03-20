@@ -1,43 +1,137 @@
+'use client';
+
+import SectionOrnament from './SectionOrnament';
+
+const sources = [
+  {
+    name: 'Bhagavad Gita',
+    sanskrit: 'श्रीमद्भगवद्गीता',
+    language: '700 verses · Sanskrit',
+    desc: 'The dialogue between Krishna and Arjuna on duty, action, and the eternal self.',
+    color: '#D4A85A',
+    glow: 'rgba(212,168,90,0.12)',
+  },
+  {
+    name: 'Ramayana',
+    sanskrit: 'वाल्मीकि रामायण',
+    language: '24,000 verses · Sanskrit',
+    desc: 'Valmiki\'s epic of Rama — dharma, devotion, and the ideal human life.',
+    color: '#C9976E',
+    glow: 'rgba(201,151,110,0.12)',
+  },
+  {
+    name: 'Mahabharata',
+    sanskrit: 'महाभारत',
+    language: '100,000 verses · Sanskrit',
+    desc: 'The longest epic — war, wisdom, morality, and the infinite complexity of human nature.',
+    color: '#A87B50',
+    glow: 'rgba(168,123,80,0.12)',
+  },
+  {
+    name: 'Classical Indian Philosophy',
+    sanskrit: 'भारतीय दर्शन',
+    language: 'Vedanta · Nyaya · Samkhya',
+    desc: 'The distilled philosophical traditions that have guided seekers for millennia.',
+    color: '#8B9E6E',
+    glow: 'rgba(139,158,110,0.1)',
+  },
+];
+
 export default function TatvamSources() {
-    const sources = [
-        'Bhagavad Gita',
-        'Ramayana',
-        'Mahabharata',
-        'Classical Indian philosophical thought'
-    ]
+  return (
+    <section className="px-6 md:px-12 py-28 md:py-36 relative overflow-hidden">
+      {/* Deep warm glow */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 100%, rgba(201,151,110,0.06) 0%, transparent 70%)' }} />
 
-    return (
-        <section className="px-6 md:px-12 py-24 md:py-32 relative">
-            <div className="max-w-4xl mx-auto space-y-16">
-                <div className="space-y-4 text-center">
-                    <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
-                        Rooted in Timeless Wisdom
-                    </h2>
-                    <div className="h-0.5 w-24 bg-accent/30 mx-auto" />
-                    <p className="text-xl text-muted-foreground font-light pt-8">
-                        Tatvam respectfully draws from:
-                    </p>
+      <div className="max-w-5xl mx-auto space-y-16 relative z-10">
+
+        {/* Heading */}
+        <div className="space-y-5 text-center">
+          <p className="font-tiro text-[#D4A85A] text-lg tracking-[0.2em] opacity-80">
+            शाश्वत ज्ञान की जड़ें
+          </p>
+          <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
+            Rooted in Timeless Wisdom
+          </h2>
+          <SectionOrnament />
+          <p className="text-xl text-muted-foreground font-light font-tiro pt-2">
+            Tatvam respectfully draws from:
+          </p>
+        </div>
+
+        {/* Manuscript cards grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {sources.map((source, idx) => (
+            <div key={idx} className="relative group overflow-hidden">
+              {/* Hover glow */}
+              <div className="absolute -inset-px rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+                style={{ background: `radial-gradient(circle at 50% 50%, ${source.glow}, transparent 70%)` }} />
+
+              <div className="relative p-8 rounded-2xl border transition-all duration-500 group-hover:-translate-y-1
+                              group-hover:shadow-[0_12px_50px_-10px] backdrop-blur-sm"
+                style={{
+                  background: 'linear-gradient(145deg, rgba(13,10,6,0.97), rgba(20,15,9,0.93))',
+                  borderColor: `${source.color}22`,
+                  ['--tw-shadow-color' as string]: source.glow,
+                }}>
+
+                {/* Top accent bar */}
+                <div className="absolute top-0 left-8 right-8 h-px"
+                  style={{ background: `linear-gradient(to right, transparent, ${source.color}50, transparent)` }} />
+
+                {/* Content */}
+                <div className="space-y-4">
+                  {/* Sanskrit name */}
+                  <p className="font-tiro text-sm tracking-wider" style={{ color: `${source.color}80` }}>
+                    {source.sanskrit}
+                  </p>
+
+                  {/* Title with flame hover icon */}
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-serif text-2xl text-foreground/90 group-hover:text-foreground
+                                   transition-colors duration-400 leading-tight">
+                      {source.name}
+                    </h3>
+                    {/* Diya glow icon */}
+                    <div className="w-10 h-10 rounded-full border flex items-center justify-center flex-shrink-0
+                                    opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                      style={{ borderColor: `${source.color}40`, background: `${source.glow}` }}>
+                      <span className="text-base" style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}>🪔</span>
+                    </div>
+                  </div>
+
+                  {/* Language/scale tag */}
+                  <p className="text-xs tracking-[0.2em] uppercase opacity-50" style={{ color: source.color }}>
+                    {source.language}
+                  </p>
+
+                  {/* Description */}
+                  <p className="text-sm font-light text-muted-foreground leading-relaxed">
+                    {source.desc}
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {sources.map((source, idx) => (
-                        <div key={idx} className="p-8 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between group hover:border-accent/40 transition-all duration-500 shadow-sm backdrop-blur-sm">
-                            <span className="font-serif text-2xl text-foreground/90 group-hover:text-accent transition-colors">
-                                {source}
-                            </span>
-                            <div className="w-12 h-12 rounded-full border border-border/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="text-accent text-xl">🕉️</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="text-center">
-                    <p className="font-light italic text-muted-foreground tracking-wide">
-                        Presented without distortion and without agenda.
-                    </p>
-                </div>
+                {/* Bottom accent bar */}
+                <div className="absolute bottom-0 left-8 right-8 h-px"
+                  style={{ background: `linear-gradient(to right, transparent, ${source.color}20, transparent)` }} />
+              </div>
             </div>
-        </section>
-    )
+          ))}
+        </div>
+
+        {/* Closing line */}
+        <div className="text-center space-y-3">
+          <p className="font-tiro text-[#C9976E]/40 text-2xl">🕉️</p>
+          <p className="font-light italic text-muted-foreground tracking-wide">
+            Presented without distortion and without agenda.
+          </p>
+          <p className="font-tiro text-[#C9976E]/40 text-sm tracking-widest">
+            बिना विकृति, बिना उद्देश्य
+          </p>
+        </div>
+
+      </div>
+    </section>
+  );
 }

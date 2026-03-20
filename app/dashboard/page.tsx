@@ -570,7 +570,7 @@ export default function DashboardPage() {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage, history }),
+                body: JSON.stringify({ message: userMessage, history, userName }),
             })
 
             const data = await response.json()
@@ -714,7 +714,7 @@ export default function DashboardPage() {
                                         </div>
                                         <div className="flex flex-col gap-0.5">
                                             <span className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-sans font-medium">Dhyana</span>
-                                            <span className="text-white/20 text-xs font-sans italic">Deep reflection in progress...</span>
+                                            <span className="text-white/20 text-xs font-sans italic">Tatvam is sitting with your words...</span>
                                         </div>
                                     </div>
                                 </div>
