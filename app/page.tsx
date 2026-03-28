@@ -13,9 +13,9 @@ import MythicalVideoBackground from '@/components/MythicalVideoBackground'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#080706] text-foreground relative overflow-hidden">
+    <div className="min-h-screen bg-transparent text-foreground relative overflow-hidden">
       {/* Background Video Layer */}
-      <MythicalVideoBackground videoId="idFMw9hEPgk" opacity={0.12} />
+      <MythicalVideoBackground videoId="idFMw9hEPgk" opacity={0.45} />
 
       {/* Ambient Background Glows */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">

@@ -89,17 +89,17 @@ export default function HeroSection() {
 
             <div className="space-y-6 text-center">
               <p className="text-3xl md:text-5xl text-accent font-tiro leading-relaxed tracking-wide drop-shadow-sm">
-                जहाँ शब्द नहीं, अर्थ बोलता है.
+                सुख-दुःख में धैर्य ही समाधान है।
               </p>
 
               <div className="space-y-4">
                 <p className="text-base md:text-lg text-accent/80 font-light tracking-[0.25em] uppercase leading-relaxed font-sans">
-                  Wisdom from the Gita, Ramayana, and Mahabharata—
+                  Learning to endure the fleeting seasons of the soul.
                 </p>
                 <div className="flex items-center justify-center gap-6 text-accent/40">
                   <span className="w-12 h-px bg-accent/10" />
                   <p className="text-sm md:text-base italic font-tiro tracking-widest">
-                    shlok, meaning, and reflection, offered gently.
+                    shlok, meaning, and reflection, found in patience.
                   </p>
                   <span className="w-12 h-px bg-accent/10" />
                 </div>

@@ -9,7 +9,7 @@ interface MythicalVideoBackgroundProps {
 
 export default function MythicalVideoBackground({
   videoId = 'idFMw9hEPgk',
-  opacity = 0.12,
+  opacity = 0.4, // Increased default
 }: MythicalVideoBackgroundProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -21,25 +21,23 @@ export default function MythicalVideoBackground({
 
   return (
     <div
-      className="fixed inset-0 z-[-10] overflow-hidden pointer-events-none select-none"
+      className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none select-none bg-[#080706]"
       aria-hidden="true"
     >
-      <div className="absolute inset-0 bg-[#080706]/40 z-10" />
-      
       {/* Container to scale the iframe to 'cover' */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-[100%] min-h-[100%] w-screen aspect-video">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[112vw] h-[112vh]">
         <iframe
-          className="w-full h-full scale-[1.35] opacity-[var(--bg-opacity)] filter grayscale-[0.2] contrast-[1.1] brightness-[0.9]"
+          className="w-full h-full opacity-[var(--bg-opacity)] filter contrast-[1.1] brightness-[1.05]"
           style={{ '--bg-opacity': opacity } as React.CSSProperties}
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&modestbranding=1&playlist=${videoId}&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1`}
-          allow="autoplay; encrypted-media"
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&modestbranding=1&playlist=${videoId}&rel=0&iv_load_policy=3&disablekb=1&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+          allow="autoplay; encrypted-media; gyroscope;"
           frameBorder="0"
         />
       </div>
 
-      {/* Foreground gradient blend */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#080706] via-transparent to-[#080706] z-20" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#080706]/80 via-transparent to-[#080706]/80 z-20" />
+      {/* Sacred Blend Overlays - Adjusted for higher visibility */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#080706] via-transparent to-[#080706] opacity-80" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#080706] via-transparent to-[#080706] opacity-60" />
     </div>
   );
 }
