@@ -31,14 +31,16 @@ export default function HeroSection() {
       {/* Floating Sound Toggle */}
       <button
         onClick={toggleSound}
+        aria-label={isPlaying ? 'Mute meditation music' : 'Unmute meditation music'}
+        aria-pressed={isPlaying}
         className={`fixed bottom-10 right-10 z-50 flex items-center gap-3 px-6 py-4 rounded-full transition-all duration-500 group shadow-[0_10px_40px_rgba(0,0,0,0.4)] border backdrop-blur-md ${isPlaying
-          ? 'bg-accent/90 border-accent/20 text-white'
-          : 'bg-[#1a1614]/80 border-white/10 text-white'
+          ? 'bg-accent/90 border-accent/20 text-[#080706]'
+          : 'bg-[#1a1614]/80 border-white/10 text-white/90'
           } hover:scale-105 active:scale-95`}
       >
         <div className="relative">
           {isPlaying ? (
-            <Volume2 className="w-6 h-6 text-accent animate-pulse" />
+            <Volume2 className="w-6 h-6 animate-pulse" />
           ) : (
             <VolumeX className="w-6 h-6 text-white/40" />
           )}
@@ -46,13 +48,13 @@ export default function HeroSection() {
             <span className="absolute -inset-2 rounded-full border border-accent/30 animate-ping" />
           )}
         </div>
-        <span className="text-sm font-light tracking-widest text-white/80 uppercase">
+        <span className="text-sm font-light tracking-widest uppercase">
           {isPlaying ? 'Energy Active' : 'Engage Energy'}
         </span>
       </button>
 
       {/* Full-Screen Blurred Background with Deep Fade */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
+      <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div
           className="absolute inset-0 bg-cover bg-center scale-110"
           style={{
@@ -72,13 +74,13 @@ export default function HeroSection() {
         <div className="transition-transform duration-500 hover:scale-105 -mb-10 md:-mb-16 lg:-mb-24 z-20">
           <img
             src="/logo_v3.png"
-            alt="Tatvam"
+            alt="Tatvam - Connecting with Ancient Wisdom"
             className="w-full max-w-[25rem] md:max-w-[45rem] lg:max-w-[55rem] h-auto drop-shadow-md"
           />
         </div>
 
         {/* Themed Description Box */}
-        <div className="w-full max-w-2xl p-8 md:p-12 rounded-[32px] bg-white/[0.04] backdrop-blur-3xl border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] space-y-8 relative group overflow-hidden">
+        <div className="w-full max-w-2xl p-8 md:p-12 rounded-[32px] bg-accent/[0.04] backdrop-blur-3xl border border-accent/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] space-y-8 relative group overflow-hidden">
           {/* Decorative Corner Glow */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -translate-y-16 translate-x-16 group-hover:bg-accent/10 transition-colors duration-1000" />
 
@@ -91,15 +93,15 @@ export default function HeroSection() {
               </p>
 
               <div className="space-y-4">
-                <p className="text-base md:text-lg text-white/70 font-light tracking-[0.25em] uppercase leading-relaxed font-sans">
+                <p className="text-base md:text-lg text-accent/80 font-light tracking-[0.25em] uppercase leading-relaxed font-sans">
                   Wisdom from the Gita, Ramayana, and Mahabharata—
                 </p>
-                <div className="flex items-center justify-center gap-6 text-white/40">
-                  <span className="w-12 h-px bg-white/10" />
+                <div className="flex items-center justify-center gap-6 text-accent/40">
+                  <span className="w-12 h-px bg-accent/10" />
                   <p className="text-sm md:text-base italic font-tiro tracking-widest">
                     shlok, meaning, and reflection, offered gently.
                   </p>
-                  <span className="w-12 h-px bg-white/10" />
+                  <span className="w-12 h-px bg-accent/10" />
                 </div>
               </div>
             </div>
@@ -112,19 +114,20 @@ export default function HeroSection() {
         <div className="flex flex-col sm:flex-row items-center gap-6 mt-16 scale-95 md:scale-100">
           <Link
             href="/login"
-            className="group relative inline-flex items-center justify-center px-12 py-5 rounded-2xl bg-accent text-[#080706] font-bold tracking-[0.2em] uppercase text-[11px] transition-all duration-500 hover:bg-white hover:scale-105 active:scale-95 shadow-[0_20px_40px_-10px_rgba(201,151,110,0.3)] hover:shadow-[0_25px_50px_-12px_rgba(255,255,255,0.2)]"
+            className="group relative inline-flex items-center justify-center px-12 py-5 rounded-2xl bg-accent text-[#080706] font-bold tracking-[0.2em] uppercase text-[11px] transition-all duration-500 hover:bg-accent/80 hover:scale-105 active:scale-95 shadow-[0_20px_40px_-10px_rgba(201,151,110,0.3)]"
           >
             Begin Reflection
           </Link>
 
           <Link
             href="/sneak-peek"
-            className="inline-flex items-center justify-center px-12 py-5 rounded-2xl bg-white/[0.03] text-white/80 border border-white/10 font-bold tracking-[0.2em] uppercase text-[11px] transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95"
+            className="inline-flex items-center justify-center px-12 py-5 rounded-2xl bg-accent/[0.03] text-accent/80 border border-accent/20 font-bold tracking-[0.2em] uppercase text-[11px] transition-all duration-500 hover:bg-accent/10 hover:border-accent/40 hover:text-accent hover:scale-105 active:scale-95"
           >
             Sneak Peek
           </Link>
         </div>
       </div>
+
     </section>
   )
 }

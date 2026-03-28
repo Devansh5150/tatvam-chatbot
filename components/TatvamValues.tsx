@@ -47,27 +47,28 @@ const values = [
 
 export default function TatvamValues() {
   return (
-    <section className="px-6 md:px-12 py-28 md:py-36 relative overflow-hidden">
+    <section className="px-6 md:px-12 py-28 md:py-36 relative overflow-hidden" aria-labelledby="tatvam-values-heading">
       {/* Om watermarks */}
       {['-10% 20%', '90% 60%', '40% 85%'].map((pos, i) => (
         <div key={i}
-          className="absolute pointer-events-none select-none font-tiro text-[#C9976E]"
+          className="absolute pointer-events-none select-none font-tiro text-accent"
+          aria-hidden="true"
           style={{ left: pos.split(' ')[0], top: pos.split(' ')[1], fontSize: '180px', opacity: 0.02, transform: 'rotate(-15deg)', lineHeight: 1 }}>
           ॐ
         </div>
       ))}
       {/* Saffron pillar glow */}
       <div className="absolute left-1/2 top-0 bottom-0 w-px pointer-events-none hidden md:block"
-        style={{ background: 'linear-gradient(to bottom, transparent, rgba(201,151,110,0.08), transparent)' }} />
+        style={{ background: 'linear-gradient(to bottom, transparent, var(--sacred-glow), transparent)' }} aria-hidden="true" />
 
       <div className="max-w-4xl mx-auto space-y-16 relative z-10">
 
         {/* Heading */}
         <div className="space-y-5 text-center">
-          <p className="font-tiro text-[#D4A85A] text-lg tracking-[0.2em] opacity-80">
+          <p className="font-tiro text-accent text-lg tracking-[0.2em] opacity-80" aria-hidden="true">
             तत्त्व के मूल्य
           </p>
-          <h2 className="font-serif text-4xl md:text-5xl font-medium text-foreground">
+          <h2 id="tatvam-values-heading" className="font-serif text-4xl md:text-5xl font-medium text-foreground">
             The Spirit of Tatvam
           </h2>
           <SectionOrnament />
@@ -77,24 +78,25 @@ export default function TatvamValues() {
         <div className="relative">
           {/* Temple pillar line */}
           <div className="absolute left-[1.125rem] top-0 bottom-0 w-px pointer-events-none"
-            style={{ background: 'linear-gradient(to bottom, #D4A85A55, #C9976E33, rgba(201,151,110,0.05))' }} />
+            aria-hidden="true"
+            style={{ background: 'linear-gradient(to bottom, var(--accent), var(--primary), transparent)' }} />
 
-          <div className="space-y-0">
+          <div className="space-y-0" role="list" aria-label="Our Core Values">
             {values.map((value, idx) => (
-              <div key={idx} className="relative pl-14 pb-14 group last:pb-0 flex gap-0">
+              <div key={idx} role="listitem" className="relative pl-14 pb-14 group last:pb-0 flex gap-0">
                 {/* Lotus node */}
-                <div className="absolute left-0 top-0 transition-transform duration-500 group-hover:scale-110">
+                <div className="absolute left-0 top-0 transition-transform duration-500 group-hover:scale-110" aria-hidden="true">
                   <LotusNode active={idx === 0} />
                 </div>
 
                 {/* Content */}
                 <div className="space-y-2">
-                  <p className="font-tiro text-[#C9976E]/50 text-xs tracking-wider">{value.subtitle}</p>
-                  <h3 className="font-serif text-2xl md:text-3xl text-foreground group-hover:text-[#D4A85A]
+                  <p className="font-tiro text-accent/50 text-xs tracking-wider" aria-hidden="true">{value.subtitle}</p>
+                  <h3 className="font-serif text-2xl md:text-3xl text-foreground group-hover:text-accent
                                  transition-colors duration-500">
                     {value.title}
                   </h3>
-                  <p className="text-lg font-light text-muted-foreground leading-relaxed max-w-2xl">
+                  <p className="text-lg font-light text-foreground/60 leading-relaxed max-w-2xl">
                     {value.description}
                   </p>
                 </div>
@@ -105,5 +107,6 @@ export default function TatvamValues() {
 
       </div>
     </section>
+
   );
 }

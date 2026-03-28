@@ -116,27 +116,29 @@ export default function TatvamPricing() {
                 </div>
 
                 {/* Pricing Deck - Swelled Scale */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 xl:gap-14 items-stretch pt-24">
+                <div role="list" className="grid grid-cols-1 lg:grid-cols-3 gap-10 xl:gap-14 items-stretch pt-24">
                     {tiers.map((tier, idx) => (
                         <motion.div
                             key={tier.id}
+                            role="listitem"
+                            aria-labelledby={`tier-${tier.id}`}
                             initial={{ opacity: 0, y: 60 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 1.2, delay: idx * 0.2 }}
                             className={`group relative flex flex-col p-14 md:p-16 lg:p-20 rounded-[50px] transition-all duration-1000 overflow-hidden ${tier.isPremium
                                 ? 'bg-[#12100E]/90 border-2 border-accent/40 shadow-[0_60px_120px_rgba(0,0,0,0.9)] backdrop-blur-xl'
-                                : 'bg-white/[0.04] border border-white/10 backdrop-blur-3xl'
+                                : 'bg-accent/[0.04] border border-accent/10 backdrop-blur-3xl'
                                 }`}
                         >
                             {/* Individual Tier Aura */}
-                            <div className={`absolute -inset-40 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none ${tier.aura}`} />
+                            <div className={`absolute -inset-40 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none ${tier.aura}`} aria-hidden="true" />
 
                             <div className="relative z-10 flex flex-col h-full">
                                 {/* Header */}
-                                <div className="mb-20 border-b border-white/10 pb-12">
+                                <div className="mb-20 border-b border-accent/10 pb-12">
                                     <div className="flex justify-between items-start mb-8">
                                         <div className="space-y-2">
-                                            <h3 className="font-tiro text-5xl tracking-widest text-white">{tier.name}</h3>
+                                            <h3 id={`tier-${tier.id}`} className="font-tiro text-5xl tracking-widest text-[#FAF8F5]">{tier.name}</h3>
                                             <p className="font-serif text-accent/80 italic text-base">{tier.subtitle}</p>
                                         </div>
                                         {tier.isPremium && (
@@ -145,24 +147,24 @@ export default function TatvamPricing() {
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-white/40 text-xs tracking-[0.4em] font-bold uppercase">{tier.status}</p>
+                                    <p className="text-[#FAF8F5]/40 text-xs tracking-[0.4em] font-bold uppercase">{tier.status}</p>
                                 </div>
 
                                 {/* Content */}
                                 {tier.description && (
                                     <div className="mb-16 p-8 rounded-[30px] bg-accent/[0.05] border border-accent/20">
-                                        <p className="text-lg font-serif italic leading-relaxed text-white/70">
+                                        <p className="text-lg font-serif italic leading-relaxed text-[#FAF8F5]/70">
                                             {tier.description}
                                         </p>
                                     </div>
                                 )}
 
                                 <div className="space-y-10 flex-grow mb-20">
-                                    <div className="space-y-8">
+                                    <div className="space-y-8" role="list">
                                         {tier.features.map((feature, fIdx) => (
-                                            <div key={fIdx} className="flex gap-6 group/item items-center">
+                                            <div key={fIdx} className="flex gap-6 group/item items-center" role="listitem">
                                                 <CheckIcon />
-                                                <span className="text-lg font-sans font-light text-white/80 group-hover/item:text-white transition-colors duration-300">
+                                                <span className="text-lg font-sans font-light text-[#FAF8F5]/80 group-hover/item:text-[#FAF8F5] transition-colors duration-300">
                                                     {feature}
                                                 </span>
                                             </div>
@@ -173,7 +175,7 @@ export default function TatvamPricing() {
                                 {/* Footer & CTA */}
                                 <div className="mt-auto space-y-12">
                                     {tier.ethicalNote && (
-                                        <div className="px-8 py-6 rounded-2xl border border-white/10 bg-white/[0.03] text-center">
+                                        <div className="px-8 py-6 rounded-2xl border border-accent/10 bg-accent/[0.03] text-center">
                                             <p className="text-xs leading-relaxed text-accent/50 font-tiro italic tracking-wider">
                                                 {tier.ethicalNote}
                                             </p>
@@ -182,9 +184,10 @@ export default function TatvamPricing() {
 
                                     <Button
                                         disabled
+                                        aria-label={`${tier.cta} - Coming soon`}
                                         className={`w-full py-12 rounded-[30px] text-xs font-black tracking-[0.5em] uppercase transition-all duration-700 opacity-50 cursor-not-allowed ${tier.isPremium
                                             ? 'bg-accent/40 text-[#080706] border-accent/20'
-                                            : 'bg-white/5 text-white/40 border border-white/20'
+                                            : 'bg-accent/5 text-accent/40 border border-accent/20'
                                             }`}
                                     >
                                         Coming Soon
@@ -194,6 +197,7 @@ export default function TatvamPricing() {
                         </motion.div>
                     ))}
                 </div>
+
             </div>
 
             {/* Cinematic Floor Gradient */}
