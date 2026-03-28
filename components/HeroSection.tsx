@@ -20,7 +20,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+    <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden pb-32">
       {/* Meditative Audio Player */}
       <audio
         ref={audioRef}
@@ -69,7 +69,7 @@ export default function HeroSection() {
       </div>
 
       {/* Hero Content */}
-      <div className="relative z-10 flex flex-col items-center space-y-0 max-w-4xl px-6 -mt-8 md:-mt-12">
+      <div className="relative z-10 flex flex-col items-center space-y-0 max-w-4xl px-6 -mt-20 md:-mt-32">
         {/* Sharpened Logo at Top */}
         <div className="transition-transform duration-500 hover:scale-105 -mb-10 md:-mb-16 lg:-mb-24 z-20">
           <img
@@ -111,7 +111,7 @@ export default function HeroSection() {
         </div>
 
         {/* CTA Buttons Row - Refined */}
-        <div className="flex flex-col sm:flex-row items-center gap-6 mt-16 scale-95 md:scale-100">
+        <div className="flex flex-col sm:flex-row items-center gap-6 mt-10 scale-95 md:scale-100">
           <Link
             href="/login"
             className="group relative inline-flex items-center justify-center px-12 py-5 rounded-2xl bg-accent text-[#080706] font-bold tracking-[0.2em] uppercase text-[11px] transition-all duration-500 hover:bg-accent/80 hover:scale-105 active:scale-95 shadow-[0_20px_40px_-10px_rgba(201,151,110,0.3)]"
