@@ -29,24 +29,24 @@ export default function MythicalPortal({ children, isOpen = true }: MythicalPort
             <div className={`relative w-[95vmin] h-[95vmin] md:w-[85vmin] md:h-[85vmin] max-w-[700px] max-h-[700px] flex items-center justify-center transition-all duration-1000 ${isOpen ? 'animate-portal-open scale-100' : 'scale-0'}`}>
 
                 {/* Rotating Spark Rings */}
-                <div className="absolute inset-0 animate-portal-spin origin-center">
+                <div className="absolute inset-0 animate-portal-spin origin-center will-change-transform">
                     {/* Ring 1 - Sharp Energized Spark */}
-                    <div className="absolute inset-0 rounded-full border-[2px] md:border-[3px] border-accent/60 shadow-[0_0_15px_rgba(201,151,110,0.4),_inset_0_0_15px_rgba(201,151,110,0.4)] md:shadow-[0_0_25px_rgba(201,151,110,0.6),_inset_0_0_20px_rgba(201,151,110,0.5)] animate-spark-flicker" />
+                    <div className="absolute inset-0 rounded-full border-[2px] md:border-[3px] border-accent/60 shadow-[0_0_15px_rgba(201,151,110,0.4),_inset_0_0_15px_rgba(201,151,110,0.4)] md:shadow-[0_0_25px_rgba(201,151,110,0.6),_inset_0_0_20px_rgba(201,151,110,0.5)] animate-spark-flicker will-change-[opacity]" />
 
                     {/* Ring 2 - Subtle High-Resonance Glow */}
                     <div className="absolute -inset-1 rounded-full border-1 border-primary/10 shadow-[0_0_15px_rgba(184,149,109,0.1)] blur-[1px]" />
 
                     {/* Highly Energized Spark Particles */}
-                    {[...Array(32)].map((_, i) => (
+                    {[...Array(24)].map((_, i) => (
                         <div
                             key={i}
-                            className="absolute w-1 h-1 bg-accent rounded-full shadow-[0_0_12px_#C9976E] animate-spark-flicker"
+                            className="absolute w-1 h-1 bg-accent rounded-full shadow-[0_0_8px_#C9976E] animate-spark-flicker will-change-[opacity]"
                             style={{
                                 top: '50%',
                                 left: '50%',
                                 transformOrigin: 'center',
-                                transform: `translate(-50%, -50%) rotate(${i * 11.25}deg) translate(49%, 0) scale(${Math.random() * 0.4 + 0.6})`,
-                                animationDelay: `${Math.random() * 2}s`
+                                transform: `translate(-50%, -50%) rotate(${i * 15}deg) translate(49.5%, 0) scale(${0.7 + (i % 3) * 0.1})`,
+                                animationDelay: `${(i % 5) * 0.3}s`
                             }}
                         />
                     ))}
@@ -60,7 +60,7 @@ export default function MythicalPortal({ children, isOpen = true }: MythicalPort
                         </defs>
 
                         {/* Outer Symbol Ring */}
-                        <g className="animate-[portal-spin_60s_linear_infinite]" style={{ transformOrigin: 'center' }}>
+                        <g className="animate-[portal-spin_60s_linear_infinite] will-change-transform" style={{ transformOrigin: 'center' }}>
                             <circle cx="100" cy="100" r="95" className="stroke-[1] opacity-30" />
                             <circle cx="100" cy="100" r="88" className="stroke-[0.5] opacity-20" />
 
@@ -75,14 +75,14 @@ export default function MythicalPortal({ children, isOpen = true }: MythicalPort
                         </g>
 
                         {/* Geometric Middle Layer */}
-                        <g className="animate-[portal-spin_40s_linear_infinite_reverse]" style={{ transformOrigin: 'center' }}>
+                        <g className="animate-[portal-spin_40s_linear_infinite_reverse] will-change-transform" style={{ transformOrigin: 'center' }}>
                             <path d="M100 20 L180 100 L100 180 L20 100 Z" className="opacity-30" />
                             <path d="M100 20 L180 100 L100 180 L20 100 Z" className="opacity-15" transform="rotate(45 100 100)" />
                             <circle cx="100" cy="100" r="75" className="stroke-accent/30" strokeDasharray="2 4" />
                         </g>
 
                         {/* Inner Sacred Star */}
-                        <g className="animate-[portal-spin_20s_linear_infinite]" style={{ transformOrigin: 'center' }}>
+                        <g className="animate-[portal-spin_20s_linear_infinite] will-change-transform" style={{ transformOrigin: 'center' }}>
                             {[...Array(12)].map((_, i) => (
                                 <path
                                     key={i}
@@ -104,5 +104,6 @@ export default function MythicalPortal({ children, isOpen = true }: MythicalPort
                 </div>
             </div>
         </div>
+
     );
 }

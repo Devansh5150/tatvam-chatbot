@@ -13,15 +13,18 @@ export async function GET(req: NextRequest) {
         }
 
         const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
-        const response = await fetch(`${backendUrl}/auth/me?token=${token}`, {
+        const response = await fetch(`${backendUrl}/auth/me`, {
             method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         })
 
         const data = await response.json()
 
         if (!response.ok) {
             return NextResponse.json(
-                { detail: data.detail || 'Invalid or expired token' },
+                { detail: data.detail || 'Invalid or expired sacred token' },
                 { status: response.status }
             )
         }

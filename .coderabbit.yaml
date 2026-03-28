@@ -1,0 +1,26 @@
+# CodeRabbit Configuration for Tatvam
+language: "en"
+ignore_draft_pr: true
+disable_poem: false
+
+# General guidelines for the entire project
+general_guidelines: |
+  - **Aesthetics**: Follow the "Tatvam" sacred/mythological aesthetic. Use glassmorphism, glowing borders, and smooth Framer Motion animations. Avoid plain white backgrounds; use subtle dark gradients (#0a0a0a base).
+  - **FastAPI**: Ensure all endpoints use Pydantic for validation and follow RESTful principles. Hashing passwords with passlib (bcrypt) and using JWT for auth is mandatory.
+  - **Frontend**: Use functional React components with TypeScript. Prefer Lucide-React for icons.
+  - **Security**: Never commit secrets or .env files. Use environment variables for all keys.
+
+# Custom instructions based on file paths
+file_path_instructions:
+  - path: "backend/**/*.py"
+    instructions: |
+      - Check for SQL injection risks when using direct sqlite3 queries.
+      - Ensure proper HTTP exception handling.
+  - path: "app/api/auth/**/*.ts"
+    instructions: |
+      - Verify proxy error handling from the FastAPI backend.
+      - Ensure CORS policy is enforced correctly.
+  - path: "components/**/*.tsx"
+    instructions: |
+      - Check for performance bottlenecks in Framer Motion animations.
+      - Ensure accessibility (ARIA labels) even in complex visual components.
