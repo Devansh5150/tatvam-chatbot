@@ -4,11 +4,9 @@ A cinematic, spiritual landing page experience designed to bridge ancient wisdom
 
 ## ✨ Mystical Features
 
-- **🛡️ Cinematic Portal Experience**: A "Dr. Strange" inspired entry point featuring rotating spark rings and a meditative energy pulse.
-- **🌀 Sacred Geometry Mandala**: A high-fidelity, multi-layered SVG mandala with mathematically precise Hindi characters (ॐ, त, त्व, म, अ, सि).
-- **🌠 Interactive Invitation**: A 3D holographic "Invitation Card" that reacts to mouse movement, serving as a divine revelation post-sign-up.
-- **🛡️ Supabase Persistence**: Secured waitlist storage with server-side validation and duplicate prevention.
+- **🛡️ Wisdom Reflection**: Wisdom from the Gita, Ramayana, and Mahabharata—shlok, meaning, and reflection, offered gently.
 - **📿 Souful Aesthetic**: Traditional Indian typography (Tiro Devanagari) paired with a minimalist, creamy desert palette.
+- **🌠 Interactive Experience**: A deep, meditative interface that guides users through spiritual reflection.
 
 ## 🚀 Getting Started
 
@@ -19,27 +17,7 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 2. Database Setup
-Run the following SQL in your Supabase SQL Editor to create the necessary table and security policies:
-
-```sql
-create table waitlist (
-  id uuid default gen_random_uuid() primary key,
-  name text not null,
-  email text not null unique,
-  created_at timestamptz default now()
-);
-
--- Enable RLS and allow anonymous inserts
-alter table waitlist enable row level security;
-
-create policy "Allow anonymous inserts"
-on waitlist for insert
-to anon
-with check (true);
-```
-
-### 3. Installation
+### 2. Installation
 ```bash
 npm install
 npm run dev
@@ -55,4 +33,4 @@ npm run dev
 - **Typography**: Google Fonts (Tiro Devanagari Hindi, Crimson Text, Source Sans Pro)
 
 ---
-"You are the journey. You are the answer." 🛡️
+"You are the journey. You are the answer." 🛡️

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, findUserById, toSafeUser } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
     try {
@@ -13,23 +12,21 @@ export async function GET(req: NextRequest) {
             )
         }
 
-        const payload = verifyToken(token)
-        if (!payload) {
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+        const response = await fetch(`${backendUrl}/auth/me?token=${token}`, {
+            method: 'GET',
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
             return NextResponse.json(
-                { detail: 'Invalid or expired token' },
-                { status: 401 }
+                { detail: data.detail || 'Invalid or expired token' },
+                { status: response.status }
             )
         }
 
-        const user = findUserById(payload.sub)
-        if (!user) {
-            return NextResponse.json(
-                { detail: 'User not found' },
-                { status: 404 }
-            )
-        }
-
-        return NextResponse.json(toSafeUser(user))
+        return NextResponse.json(data)
     } catch (err: any) {
         return NextResponse.json(
             { detail: err.message || 'Something went wrong' },

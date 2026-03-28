@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { findUserByEmail, verifyPassword, toSafeUser, createToken } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,21 +11,23 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        const user = findUserByEmail(email)
-        if (!user || !verifyPassword(password, user.hashedPassword)) {
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+        const response = await fetch(`${backendUrl}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
             return NextResponse.json(
-                { detail: 'Invalid email or password' },
-                { status: 401 }
+                { detail: data.detail || 'Invalid email or password' },
+                { status: response.status }
             )
         }
 
-        const token = createToken(user.id, user.email)
-
-        return NextResponse.json({
-            access_token: token,
-            token_type: 'bearer',
-            user: toSafeUser(user),
-        })
+        return NextResponse.json(data)
     } catch (err: any) {
         return NextResponse.json(
             { detail: err.message || 'Something went wrong' },

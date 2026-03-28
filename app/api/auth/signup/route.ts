@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createUser, findUserByEmail, toSafeUser, createToken } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,29 +11,23 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        if (password.length < 6) {
-            return NextResponse.json(
-                { detail: 'Password must be at least 6 characters' },
-                { status: 400 }
-            )
-        }
-
-        const existing = findUserByEmail(email)
-        if (existing) {
-            return NextResponse.json(
-                { detail: 'This email is already part of the circle' },
-                { status: 400 }
-            )
-        }
-
-        const user = createUser(name, email, password)
-        const token = createToken(user.id, user.email)
-
-        return NextResponse.json({
-            access_token: token,
-            token_type: 'bearer',
-            user: toSafeUser(user),
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+        const response = await fetch(`${backendUrl}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password }),
         })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            return NextResponse.json(
+                { detail: data.detail || 'Something went wrong' },
+                { status: response.status }
+            )
+        }
+
+        return NextResponse.json(data)
     } catch (err: any) {
         return NextResponse.json(
             { detail: err.message || 'Something went wrong' },
