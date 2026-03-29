@@ -7,17 +7,32 @@ interface MythicalVideoBackgroundProps {
   opacity?: number;
 }
 
+const SACRED_VIDEOS = [
+  'idFMw9hEPgk', // Mahabharat (BR Chopra)
+  'f2_T-itQx08', // Ramayan (BR Chopra)
+  'm_T0hS-D2O0', // Gita Upadesh
+  'L1W-80Mmx8U', // Cinematic Mahabharat Atmosphere
+];
+
 export default function MythicalVideoBackground({
-  videoId = 'idFMw9hEPgk',
-  opacity = 0.4, // Increased default
+  videoId,
+  opacity = 0.45,
 }: MythicalVideoBackgroundProps) {
   const [mounted, setMounted] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState('');
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Randomly select if not provided
+    if (!videoId) {
+      const random = SACRED_VIDEOS[Math.floor(Math.random() * SACRED_VIDEOS.length)];
+      setSelectedVideo(random);
+    } else {
+      setSelectedVideo(videoId);
+    }
+  }, [videoId]);
 
-  if (!mounted) return null;
+  if (!mounted || !selectedVideo) return <div className="fixed inset-0 bg-[#080706]" />;
 
   return (
     <div

@@ -10,6 +10,7 @@ import TatvamSources from '@/components/TatvamSources'
 import TatvamPricing from '@/components/TatvamPricing'
 import Footer from '@/components/Footer'
 import MythicalVideoBackground from '@/components/MythicalVideoBackground'
+import KurukshetraScroll from '@/components/KurukshetraScroll'
 
 export default function Home() {
   return (
@@ -35,6 +36,7 @@ export default function Home() {
         <HowItWorks />
         <WhatTatvamIsNot />
         <WhoItIsFor />
+        <KurukshetraScroll />
         <TatvamValues />
         <TatvamSources />
         <TatvamPricing />

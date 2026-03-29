@@ -34,14 +34,14 @@ export default function WhoItIsFor() {
         {/* Heading */}
         <div className="space-y-5 text-center">
           <p className="font-tiro text-accent text-lg tracking-[0.2em] opacity-80" aria-hidden="true">
-            अर्जुन की तरह
+            अर्जुन और राम की तरह
           </p>
           <h2 id="who-it-is-for-heading" className="font-serif text-4xl md:text-5xl font-medium text-foreground">
             For moments like these
           </h2>
           <SectionOrnament />
           <p className="text-foreground/60 text-base font-light italic font-tiro">
-            Like Arjuna on the battlefield — when the weight of life silences words.
+            Like Arjuna in doubt, or Rama in exile — for those moments when the weight of life silences words.
           </p>
         </div>
 

@@ -8,6 +8,38 @@ export default function HeroSection() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const [mounted, setMounted] = useState(false);
+  const [selectedQuote, setSelectedQuote] = useState({ sanskrit: '', english: '', source: '' });
+
+  const SACRED_QUOTES = [
+    {
+      sanskrit: 'सुख-दुःख में धैर्य ही समाधान है।',
+      english: 'Learning to endure the fleeting seasons of the soul.',
+      source: 'Patience from the Gita'
+    },
+    {
+      sanskrit: 'रामो विग्रहवान् धर्मः',
+      english: 'Rama is the living embodiment of dharma.',
+      source: 'Righteousness from Ramayana'
+    },
+    {
+      sanskrit: 'धर्मो रक्षति रक्षितः',
+      english: 'Dharma protects those who protect it.',
+      source: 'Duty from Mahabharata'
+    },
+    {
+      sanskrit: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन',
+      english: 'Act without attachment to the outcome.',
+      source: 'Action from Bhagavad Gita'
+    }
+  ];
+
+  useEffect(() => {
+    setMounted(true);
+    const random = SACRED_QUOTES[Math.floor(Math.random() * SACRED_QUOTES.length)];
+    setSelectedQuote(random);
+  }, []);
+
   const toggleSound = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -58,7 +90,7 @@ export default function HeroSection() {
         <div
           className="absolute inset-0 bg-cover bg-center scale-110"
           style={{
-            backgroundImage: "url('/krishna-arjun.png')",
+            backgroundImage: "url('/sacred_mythology_hero_bg_1774808391877.png')", // Generated inclusive background
             filter: 'blur(20px)',
           }}
         />
@@ -88,18 +120,18 @@ export default function HeroSection() {
             <div className="h-px w-24 bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
 
             <div className="space-y-6 text-center">
-              <p className="text-3xl md:text-5xl text-accent font-tiro leading-relaxed tracking-wide drop-shadow-sm">
-                सुख-दुःख में धैर्य ही समाधान है।
+              <p className="text-3xl md:text-5xl text-accent font-tiro leading-relaxed tracking-wide drop-shadow-sm transition-opacity duration-1000" style={{ opacity: mounted ? 1 : 0 }}>
+                {selectedQuote.sanskrit || 'सुख-दुःख में धैर्य ही समाधान है।'}
               </p>
 
               <div className="space-y-4">
-                <p className="text-base md:text-lg text-accent/80 font-light tracking-[0.25em] uppercase leading-relaxed font-sans">
-                  Learning to endure the fleeting seasons of the soul.
+                <p className="text-base md:text-lg text-accent/80 font-light tracking-[0.25em] uppercase leading-relaxed font-sans transition-opacity duration-1000 delay-300" style={{ opacity: mounted ? 1 : 0 }}>
+                  {selectedQuote.english || 'Learning to endure the fleeting seasons of the soul.'}
                 </p>
-                <div className="flex items-center justify-center gap-6 text-accent/40">
+                <div className="flex items-center justify-center gap-6 text-accent/40 transition-opacity duration-1000 delay-500" style={{ opacity: mounted ? 1 : 0 }}>
                   <span className="w-12 h-px bg-accent/10" />
                   <p className="text-sm md:text-base italic font-tiro tracking-widest">
-                    shlok, meaning, and reflection, found in patience.
+                    {selectedQuote.source || 'shlok, meaning, and reflection, found in patience.'}
                   </p>
                   <span className="w-12 h-px bg-accent/10" />
                 </div>
