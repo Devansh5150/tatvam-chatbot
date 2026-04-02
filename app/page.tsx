@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import HeroSection from '@/components/HeroSection'
 import WhatTatvamIs from '@/components/WhatTatvamIs'
@@ -16,9 +16,24 @@ import KurukshetraScroll from '@/components/KurukshetraScroll'
 
 export default function Home() {
   const [hasEntered, setHasEntered] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const toggleSound = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   return (
     <>
+      {/* Global Audio Element */}
+      <audio ref={audioRef} src="/om-chant.mp3" loop preload="auto" />
       <AnimatePresence>
         {!hasEntered && (
           <motion.div
@@ -32,7 +47,13 @@ export default function Home() {
              </div>
              
              <button 
-                onClick={() => setHasEntered(true)}
+                onClick={() => {
+                  setHasEntered(true);
+                  if (audioRef.current) {
+                    audioRef.current.play().catch(e => console.error("Audio autoplay failed:", e));
+                    setIsPlaying(true);
+                  }
+                }}
                 className="relative z-10 group flex flex-col items-center justify-center cursor-pointer outline-none w-64 h-64 md:w-80 md:h-80"
              >
                 {/* Luxury Concentric Rings */}
@@ -44,7 +65,7 @@ export default function Home() {
                 <div className="absolute inset-0 rounded-full bg-[#D4AF37]/0 group-hover:bg-[#D4AF37]/10 blur-2xl transition-all duration-1000" />
 
                 {/* The "Om" Symbol */}
-                <div className="relative text-[120px] md:text-[140px] font-serif transition-all duration-1000 group-hover:scale-[1.04] group-hover:-translate-y-2 translate-x-[8px] -translate-y-[12px]
+                <div className="absolute top-1/2 left-1/2 -translate-x-[48%] -translate-y-[42%] text-[130px] md:text-[160px] font-serif transition-all duration-1000 group-hover:scale-[1.04] group-hover:-translate-y-[45%]
                                 bg-gradient-to-br from-[#FFF8D6] via-[#D4AF37] via-50% to-[#593d0c] bg-clip-text text-transparent p-8"
                      style={{
                        filter: `drop-shadow(-8px 12px 12px rgba(0,0,0,0.8)) drop-shadow(0px 0px 30px rgba(212,175,55,0.3))`,
@@ -81,7 +102,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-10">
-          <HeroSection />
+          <HeroSection isPlaying={isPlaying} onToggleSound={toggleSound} />
           <WhatTatvamIs />
           <HowItWorks />
           <WhatTatvamIsNot />

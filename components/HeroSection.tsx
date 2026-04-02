@@ -4,10 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 
-export default function HeroSection() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+interface HeroSectionProps {
+  isPlaying?: boolean;
+  onToggleSound?: () => void;
+}
 
+export default function HeroSection({ isPlaying = false, onToggleSound }: HeroSectionProps) {
   const [mounted, setMounted] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState({ sanskrit: '', english: '', source: '' });
 
@@ -40,29 +42,12 @@ export default function HeroSection() {
     setSelectedQuote(random);
   }, []);
 
-  const toggleSound = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch(e => console.error("Audio play failed:", e));
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
   return (
     <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden pb-32">
-      {/* Meditative Audio Player */}
-      <audio
-        ref={audioRef}
-        src="/om-chant.mp3"
-        loop
-      />
 
       {/* Floating Sound Toggle */}
       <button
-        onClick={toggleSound}
+        onClick={onToggleSound}
         aria-label={isPlaying ? 'Mute meditation music' : 'Unmute meditation music'}
         aria-pressed={isPlaying}
         className={`fixed bottom-10 right-10 z-50 flex items-center gap-3 px-6 py-4 rounded-full transition-all duration-500 group shadow-[0_10px_40px_rgba(0,0,0,0.4)] border backdrop-blur-md ${isPlaying
