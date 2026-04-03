@@ -97,8 +97,8 @@ export default function MythicalPortal({ children, isOpen = true }: MythicalPort
                 </div>
 
                 {/* Portal Interior Content Container */}
-                <div className="relative z-10 w-[84%] h-[84%] rounded-full overflow-hidden flex items-center justify-center p-4 md:p-10 bg-black/60 border border-white/5 shadow-inner backdrop-blur-xl">
-                    <div className="w-full h-full flex items-center justify-center">
+                <div className="relative z-10 w-[84%] h-[84%] flex items-center justify-center p-4 md:p-10 pointer-events-none">
+                    <div className="w-full h-full flex items-center justify-center pointer-events-auto">
                         {children}
                     </div>
                 </div>

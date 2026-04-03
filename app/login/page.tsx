@@ -62,12 +62,15 @@ export default function LoginPage() {
                 <h1 className="font-serif text-3xl md:text-5xl text-foreground font-light tracking-tight drop-shadow-[0_0_15px_rgba(201,151,110,0.2)]">
                     {mode === 'login' ? 'Welcome Back' : 'Begin Your Journey'}
                 </h1>
-                <p className="text-foreground/40 font-sans text-sm md:text-base mt-2">
-                    {mode === 'login'
-                        ? 'Return to your reflection.'
-                        : 'Create an account to receive daily wisdom.'}
-                </p>
-                <div className="h-px w-12 bg-accent/40 mx-auto mt-6 shadow-[0_0_10px_rgba(201,151,110,0.3)]" aria-hidden="true" />
+                <div className="flex items-center justify-center gap-4 mt-4 w-full">
+                    <div className="h-px flex-1 max-w-[3rem] bg-gradient-to-r from-transparent to-accent/40 shadow-[0_0_10px_rgba(201,151,110,0.3)]" aria-hidden="true" />
+                    <p className="text-foreground/40 font-sans text-sm md:text-base text-center shrink-0">
+                        {mode === 'login'
+                            ? 'Return to your reflection.'
+                            : 'Create an account to receive daily wisdom.'}
+                    </p>
+                    <div className="h-px flex-1 max-w-[3rem] bg-gradient-to-l from-transparent to-accent/40 shadow-[0_0_10px_rgba(201,151,110,0.3)]" aria-hidden="true" />
+                </div>
             </div>
 
             <MythicalPortal>
@@ -170,9 +173,13 @@ export default function LoginPage() {
                     </div>
 
                     {/* Footer Note */}
-                    <p className="text-center mt-8 text-foreground/30 text-xs tracking-[0.15em] font-sans">
-                        Your journey begins in silence.
-                    </p>
+                    <div className="flex items-center justify-center gap-4 mt-8 pb-4 w-full">
+                        <div className="h-px flex-1 max-w-[3rem] bg-gradient-to-r from-transparent to-accent/40 shadow-[0_0_10px_rgba(201,151,110,0.3)]" aria-hidden="true" />
+                        <p className="text-center text-foreground/30 text-xs tracking-[0.15em] font-sans shrink-0">
+                            Your journey begins in silence.
+                        </p>
+                        <div className="h-px flex-1 max-w-[3rem] bg-gradient-to-l from-transparent to-accent/40 shadow-[0_0_10px_rgba(201,151,110,0.3)]" aria-hidden="true" />
+                    </div>
                 </div>
             </MythicalPortal>
         </main>
