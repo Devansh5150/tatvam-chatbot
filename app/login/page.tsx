@@ -43,6 +43,7 @@ export default function LoginPage() {
             window.location.href = '/dashboard'
         } catch (err: any) {
             setError(err.message)
+            setIsLoading(false)
         }
     }
 
@@ -153,6 +154,39 @@ export default function LoginPage() {
                                 )}
                             </button>
                         </form>
+
+                        {/* LLM Dev Quick Login Button */}
+                        {process.env.NODE_ENV === 'development' && (
+                            <button
+                                type="button"
+                                disabled={isLoading}
+                                onClick={async () => {
+                                    setIsLoading(true)
+                                    setError(null)
+                                    try {
+                                        const response = await fetch('/api/auth/login', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ email: 'tatvam_llm@dev.com', password: 'tatvam123' }),
+                                        })
+                            
+                                        const data = await response.json()
+                            
+                                        if (!response.ok) throw new Error(data.detail || 'Something went wrong')
+                            
+                                        localStorage.setItem('tatvam_token', data.access_token)
+                                        localStorage.setItem('tatvam_user', JSON.stringify(data.user))
+                                        window.location.href = '/dashboard'
+                                    } catch (err: any) {
+                                        setError('Dev Login Failed: You may need to restart the backend to seed the dev user.')
+                                        setIsLoading(false)
+                                    }
+                                }}
+                                className="w-full mt-4 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 py-3 text-xs font-bold tracking-[0.1em] uppercase rounded-xl hover:bg-indigo-500/20 active:scale-95 transition-all font-sans"
+                            >
+                                [DEV] Quick Login for LLM
+                            </button>
+                        )}
 
                         {/* Toggle Mode */}
                         <div className="mt-8 pt-6 border-t border-accent/5 text-center">
