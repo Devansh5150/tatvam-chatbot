@@ -34,31 +34,32 @@
 }
 
 .dark {
-  --background: #080706; /* Deep Ink */
-  --foreground: #E8DCC8; /* Warm Parchment Text */
-  --card: rgba(20, 18, 16, 0.6);
-  --card-foreground: #E8DCC8;
-  --popover: #0D0C0A;
-  --popover-foreground: #E8DCC8;
-  --primary: #C9976E; /* Saffron Gold */
-  --primary-foreground: #080706;
-  --secondary: #2D2338; /* Spiritual Indigo */
+  --background: #0A0A0C; /* Deep Celestial Void */
+  --foreground: #F2ECE4; /* Starry Silver/Parchment */
+  --surface: #121114; /* Elevated Cosmic Surface */
+  --surface-hover: #1A191D;
+  --card: rgba(18, 17, 20, 0.6);
+  --card-foreground: #F2ECE4;
+  --popover: #0A0A0C;
+  --popover-foreground: #F2ECE4;
+  --primary: #E0B36E; /* Surya Gold */
+  --primary-foreground: #0A0A0C;
+  --secondary: #1A1A2E; /* Spiritual Indigo */
   --secondary-foreground: #E8DCC8;
   --muted: #1A1614;
   --muted-foreground: #8B7E74;
-  --accent: #D4A373; /* Rich Saffron */
-  --accent-foreground: #080706;
+  --accent: #E0B36E; /* Vibrant Surya Gold */
+  --accent-foreground: #0A0A0C;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: rgba(201, 151, 110, 0.15);
-  --input: rgba(255, 255, 255, 0.02);
-  --ring: #D4A373;
+  --border: rgba(224, 179, 110, 0.15);
+  --input: rgba(255, 255, 255, 0.04);
+  --ring: #E0B36E;
 
-  /* Spiritual Palette Extension */
-  --spiritual-indigo: #1A1A2E;
-  --spiritual-violet: #2D2338;
-  --spiritual-saffron: #C9976E;
-  --spiritual-text: #E8DCC8;
+  /* Ambient Cosmic Palette */
+  --ambient-indigo: #1A1A2E;
+  --ambient-violet: #2D2338;
+  --ambient-saffron: rgba(224, 179, 110, 0.4);
 
   /* Mythological extras */
   --gold: #D4A85A;
@@ -132,6 +133,11 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-ambient-indigo: var(--ambient-indigo);
+  --color-ambient-violet: var(--ambient-violet);
+  --color-ambient-saffron: var(--ambient-saffron);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);

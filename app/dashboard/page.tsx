@@ -97,7 +97,7 @@ function DashboardSidebar({
 
             {/* Sidebar */}
             <aside
-                className={`fixed md:relative z-40 h-full bg-[#0d0c0a] border-r border-white/5 flex flex-col transition-all duration-300 ${isOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-16 md:translate-x-0'
+                className={`fixed md:relative z-40 h-full bg-surface border-r border-white/5 flex flex-col transition-all duration-300 ${isOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-16 md:translate-x-0'
                     }`}
             >
                 <div className={`flex flex-col h-full overflow-hidden ${isOpen ? 'opacity-100' : 'opacity-0 md:opacity-100'}`}>
@@ -292,9 +292,9 @@ function MessageBubble({ message }: { message: Message }) {
     if (message.type === 'reflection') {
         return (
             <div className="mb-8">
-                <div className="max-w-2xl bg-[#C9976E]/[0.02] border border-[#C9976E]/15 rounded-2xl rounded-bl-md px-8 py-7 backdrop-blur-lg relative overflow-hidden">
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#C9976E]/5 blur-[30px] rounded-full" />
-                    <p className="text-[#C9976E]/40 text-[9px] tracking-[0.3em] uppercase mb-4 font-sans font-medium">Chintana • Reflection</p>
+                <div className="max-w-2xl bg-accent/[0.02] border border-accent/15 rounded-2xl rounded-bl-md px-8 py-7 backdrop-blur-lg relative overflow-hidden">
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 blur-[30px] rounded-full" />
+                    <p className="text-accent/40 text-[9px] tracking-[0.3em] uppercase mb-4 font-sans font-medium">Chintana • Reflection</p>
                     <p className="font-serif text-white/60 text-xl leading-relaxed italic">
                         &quot;{message.content}&quot;
                     </p>
@@ -638,8 +638,8 @@ export default function DashboardPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#080706] flex items-center justify-center">
-                <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_12px_rgba(201,151,110,0.8)] animate-pulse" />
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="w-2 h-2 bg-accent rounded-full shadow-[0_0_12px_var(--color-accent)] animate-pulse" />
             </div>
         )
     }
@@ -647,17 +647,17 @@ export default function DashboardPage() {
     if (!isAuthenticated) return null
 
     return (
-        <div className="h-screen bg-[#080706] flex overflow-hidden relative">
+        <div className="h-screen bg-background flex overflow-hidden relative">
             {/* Ambient Background Layers */}
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
                 {/* Indigo Flow */}
-                <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-[#1A1A2E]/40 blur-[120px] rounded-full animate-[pulse_6s_ease-in-out_infinite]" />
+                <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-ambient-indigo/40 blur-[120px] rounded-full animate-[pulse_6s_ease-in-out_infinite]" />
                 {/* Violet Pulse */}
-                <div className="absolute top-[20%] -right-[5%] w-[50%] h-[50%] bg-[#2D2338]/30 blur-[100px] rounded-full animate-[pulse_8s_ease-in-out_infinite]" style={{ animationDelay: '1000ms' }} />
+                <div className="absolute top-[20%] -right-[5%] w-[50%] h-[50%] bg-ambient-violet/30 blur-[100px] rounded-full animate-[pulse_8s_ease-in-out_infinite]" style={{ animationDelay: '1000ms' }} />
                 {/* Saffron Glow */}
-                <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[40%] bg-[#C9976E]/10 blur-[110px] rounded-full animate-[pulse_10s_ease-in-out_infinite]" style={{ animationDelay: '2000ms' }} />
+                <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[40%] bg-ambient-saffron blur-[110px] rounded-full animate-[pulse_10s_ease-in-out_infinite]" style={{ animationDelay: '2000ms' }} />
                 {/* Center Ink Depth */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080706]/20 to-[#080706]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background" />
             </div>
 
             {/* Sidebar Overlay for depth */}
@@ -740,7 +740,7 @@ export default function DashboardPage() {
                             <button
                                 onClick={handleSend}
                                 disabled={!inputValue.trim() || isThinking || remaining <= 0}
-                                className="p-2.5 rounded-xl bg-accent text-[#080706] hover:bg-[#E8DCC8] active:scale-95 transition-all duration-200 disabled:opacity-20 disabled:grayscale disabled:scale-100 shadow-[0_0_15px_rgba(212,163,115,0.3)]"
+                                className="p-2.5 rounded-xl bg-accent text-accent-foreground hover:bg-white/90 active:scale-95 transition-all duration-200 disabled:opacity-20 disabled:grayscale disabled:scale-100 shadow-[0_0_15px_var(--color-accent)]"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2" />
