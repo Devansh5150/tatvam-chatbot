@@ -8,7 +8,7 @@ import { RATE_LIMIT, getRemainingMessages, getNextResetTime, recordMessageTimest
 
 interface Message {
     id: string
-    type: 'shlok' | 'meaning' | 'reflection' | 'user' | 'system'
+    type: 'shlok' | 'meaning' | 'reflection' | 'user' | 'system' | 'chat'
     content: string
     subContent?: string
     source?: string
@@ -35,187 +35,88 @@ const DAILY_SHLOKS = [
         source: 'Bhagavad Gita 2.47',
     },
     {
-        sanskrit: 'योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।\nसिद्ध्यसिद्ध्योः समो भूत्वा समत्वं योग उच्यते॥',
-        hindi: 'हे धनञ्जय! आसक्ति को त्यागकर, सिद्धि और असिद्धि में समान भाव से स्थित होकर कर्म करो। यही समत्व योग कहलाता है।',
-        english: 'Perform your duties with equanimity, O Arjuna, abandoning all attachment, being indifferent to success and failure. Such equanimity is called Yoga.',
-        reflection: 'Can you act fully without clinging to the result?',
-        source: 'Bhagavad Gita 2.48',
+        sanskrit: 'धर्मो रक्षति रक्षितः।',
+        hindi: 'जो धर्म की रक्षा करता है, धर्म उसकी रक्षा करता है।',
+        english: 'Those who protect dharma are in turn protected by dharma. Righteousness shelters the one who upholds it.',
+        reflection: 'What is one small act of righteousness you can hold firm to today?',
+        source: 'Mahabharata, Vana Parva',
     },
     {
-        sanskrit: 'उद्धरेदात्मनात्मानं नात्मानमवसादयेत्।\nआत्मैव ह्यात्मनो बन्धुरात्मैव रिपुरात्मनः॥',
-        hindi: 'अपने आप को स्वयं ऊपर उठाओ, अपने आप को गिरने मत दो। क्योंकि आत्मा ही आत्मा का मित्र है, और आत्मा ही आत्मा का शत्रु है।',
-        english: 'Elevate yourself through the power of your own mind, and do not degrade yourself. The mind can be the friend and also the enemy of the self.',
-        reflection: 'Are you being your own friend today, or your own obstacle?',
-        source: 'Bhagavad Gita 6.5',
-    },
-    {
-        sanskrit: 'यदा यदा हि धर्मस्य ग्लानिर्भवति भारत।\nअभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम्॥',
-        hindi: 'हे भारत! जब-जब धर्म की हानि और अधर्म की वृद्धि होती है, तब-तब मैं स्वयं को प्रकट करता हूँ।',
-        english: 'Whenever there is a decline in righteousness and an increase in unrighteousness, O Arjuna, at that time I manifest Myself.',
-        reflection: 'What small act of dharma can you restore in your own life today?',
-        source: 'Bhagavad Gita 4.7',
-    },
-    {
-        sanskrit: 'सर्वधर्मान्परित्यज्य मामेकं शरणं व्रज।\nअहं त्वां सर्वपापेभ्यो मोक्षयिष्यामि मा शुचः॥',
-        hindi: 'सब धर्मों को त्यागकर तू केवल मेरी शरण में आ। मैं तुझे सब पापों से मुक्त कर दूँगा, शोक मत कर।',
-        english: 'Abandon all varieties of duties and surrender unto Me alone. I shall deliver you from all sinful reactions; do not grieve.',
-        reflection: 'What would it feel like to truly let go and trust the process?',
-        source: 'Bhagavad Gita 18.66',
+        sanskrit: 'आत्मानं प्रतिकूलानि परेषां न समाचरेत्।',
+        hindi: 'जो बात स्वयं को अप्रिय लगे, वह दूसरों के साथ न करें।',
+        english: 'One should never do to another what one regards as hurtful to oneself. This is the essence of dharma; all other rules flow from it.',
+        reflection: 'Is there someone waiting for the kindness you wish you received?',
+        source: 'Ramayana, Ayodhya Kanda',
     },
 ]
 
-// ─── Dashboard Sidebar ───────────────────────────────────────────────────────
+// ─── Minimalist Icon Sidebar ──────────────────────────────────────────────────
 
 function DashboardSidebar({
-    isOpen,
-    onToggle,
     userName,
     onLogout,
     onNewReflection,
-    conversations,
-    activeId,
-    onSelectConversation,
 }: {
-    isOpen: boolean
-    onToggle: () => void
     userName: string
     onLogout: () => void
     onNewReflection: () => void
-    conversations: Conversation[]
-    activeId: string | null
-    onSelectConversation: (id: string) => void
 }) {
     return (
-        <>
-            {/* Mobile overlay */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 bg-black/60 z-30 md:hidden"
-                    onClick={onToggle}
-                />
-            )}
+        <aside className="w-[70px] h-full bg-white flex flex-col items-center py-6 border-r border-[#EFEFEF] shrink-0 z-20">
+            {/* Logo / Glowing Orb */}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 shadow-[0_4px_15px_rgba(201,151,110,0.3)] mb-10 flex items-center justify-center">
+                <div className="w-4 h-4 bg-white/40 blur-[2px] rounded-full absolute mix-blend-overlay" />
+            </div>
 
-            {/* Sidebar */}
-            <aside
-                className={`fixed md:relative z-40 h-full bg-surface border-r border-white/5 flex flex-col transition-all duration-300 ${isOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-16 md:translate-x-0'
-                    }`}
-            >
-                <div className={`flex flex-col h-full overflow-hidden ${isOpen ? 'opacity-100' : 'opacity-0 md:opacity-100'}`}>
-                    {/* Top Section */}
-                    <div className="p-4 space-y-4">
-                        {/* Logo + Toggle */}
-                        <div className="flex items-center justify-between">
-                            {isOpen && (
-                                <a href="/" className="font-serif text-white/80 text-lg tracking-wide hover:text-white transition-colors">
-                                    Tatvam
-                                </a>
-                            )}
-                            <button
-                                onClick={onToggle}
-                                className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/50 hover:text-white"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    {isOpen ? (
-                                        <path d="M15 18l-6-6 6-6" />
-                                    ) : (
-                                        <>
-                                            <line x1="3" y1="6" x2="21" y2="6" />
-                                            <line x1="3" y1="12" x2="21" y2="12" />
-                                            <line x1="3" y1="18" x2="21" y2="18" />
-                                        </>
-                                    )}
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* New Reflection Button */}
-                        {isOpen && (
-                            <button
-                                onClick={onNewReflection}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-all text-sm font-sans tracking-wide"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="12" y1="5" x2="12" y2="19" />
-                                    <line x1="5" y1="12" x2="19" y2="12" />
-                                </svg>
-                                New Reflection
-                            </button>
-                        )}
+            {/* Navigation Icons */}
+            <nav className="flex flex-col gap-6 flex-1 w-full items-center">
+                <button
+                    onClick={onNewReflection}
+                    className="p-3 bg-[#111111] text-white rounded-[14px] hover:bg-black/80 transition-colors shadow-md relative group"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    {/* New Badge */}
+                    <div className="absolute -top-1 -right-1 flex rotate-12">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                           <path d="M12 2L15 9L22 10L17 15L18.5 22L12 18L5.5 22L7 15L2 10L9 9L12 2Z" />
+                        </svg>
                     </div>
+                </button>
 
-                    {/* Past Sessions - Wrapped in a container that grows */}
-                    <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
-                        {isOpen && (
-                            <>
-                                <p className="text-[10px] text-white/30 font-sans tracking-[0.2em] uppercase mb-3 px-3">
-                                    Recent
-                                </p>
-                                <div className="space-y-1">
-                                    {conversations.length === 0 ? (
-                                        <div className="px-3 py-2.5 text-white/20 text-xs font-sans italic">
-                                            No reflections yet
-                                        </div>
-                                    ) : (
-                                        conversations
-                                            .sort((a, b) => b.updatedAt - a.updatedAt)
-                                            .map((conv) => (
-                                                <button
-                                                    key={conv.id}
-                                                    onClick={() => onSelectConversation(conv.id)}
-                                                    className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-200 group relative truncate ${activeId === conv.id
-                                                        ? 'bg-accent/10 text-accent font-medium shadow-[inset_0_0_12px_rgba(201,151,110,0.05)] border border-accent/20'
-                                                        : 'text-white/40 hover:text-white/70 hover:bg-white/5 border border-transparent'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-1 h-1 rounded-full transition-colors ${activeId === conv.id ? 'bg-accent' : 'bg-transparent group-hover:bg-white/20'}`} />
-                                                        <span className="text-sm font-sans truncate pr-2">
-                                                            {conv.title || "New Reflection"}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            ))
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
+                </button>
+                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                </button>
+                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19.5 12.572L12 20l-7.5-7.428m0 0A5 5 0 1 1 12 5.5a5 5 0 1 1 7.5 7.072z" /></svg>
+                </button>
+                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                </button>
+                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors relative">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                    <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full" />
+                </button>
+            </nav>
 
-                    {/* Bottom Section - Fixed at the very bottom */}
-                    <div className="mt-auto p-4 border-t border-white/5 space-y-2">
-                        {isOpen ? (
-                            <>
-                                <div className="flex items-center justify-between px-3 py-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-serif border border-accent/10">
-                                            {userName.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-white/80 text-sm font-sans truncate max-w-[120px]">{userName}</span>
-                                            <Link href="/profile" className="text-accent/60 text-[10px] uppercase tracking-widest hover:text-accent transition-colors">
-                                                View Profile
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={onLogout}
-                                    className="w-full text-left px-3 py-2 text-white/30 hover:text-white/60 hover:bg-white/5 transition-all text-xs font-sans tracking-tight"
-                                >
-                                    Log Out
-                                </button>
-                            </>
-                        ) : (
-                            <Link href="/profile" className="flex justify-center group">
-                                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-serif border border-accent/10 group-hover:bg-accent/30 transition-colors">
-                                    {userName.charAt(0).toUpperCase()}
-                                </div>
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </aside>
-        </>
+            {/* Profile Avatar & Settings */}
+            <div className="flex flex-col gap-6 items-center mt-auto pb-4">
+                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                </button>
+                <button
+                    onClick={onLogout}
+                    className="w-10 h-10 rounded-full flex mx-auto items-center justify-center font-serif text-sm font-medium border border-[#EBEBEB] text-[#111111] hover:bg-[#F9F9F9] transition-colors relative"
+                >
+                    {userName.charAt(0).toUpperCase()}
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
+                </button>
+            </div>
+        </aside>
     )
 }
 
@@ -225,8 +126,23 @@ function MessageBubble({ message }: { message: Message }) {
     if (message.type === 'user') {
         return (
             <div className="flex justify-end mb-6">
-                <div className="max-w-xl bg-primary/10 border border-primary/20 rounded-2xl rounded-br-md px-6 py-4 shadow-[0_4px_20px_rgba(201,151,110,0.05)] backdrop-blur-md">
-                    <p className="text-white/90 font-sans text-base leading-relaxed">{message.content}</p>
+                <div className="max-w-xl bg-[#F4F4F4] rounded-2xl rounded-br-sm px-6 py-4 shadow-sm border border-[#EBEBEB]">
+                    <p className="text-zinc-800 font-sans text-base leading-relaxed">{message.content}</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (message.type === 'chat') {
+        return (
+            <div className="mb-6 flex gap-4 pr-12">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm flex items-center justify-center">
+                   <div className="w-3 h-3 bg-white/40 blur-[1px] rounded-full absolute mix-blend-overlay" />
+                </div>
+                <div className="max-w-2xl pt-1">
+                    <p className="text-zinc-700 font-sans text-base leading-relaxed tracking-wide">
+                        {message.content}
+                    </p>
                 </div>
             </div>
         )
@@ -234,19 +150,22 @@ function MessageBubble({ message }: { message: Message }) {
 
     if (message.type === 'shlok') {
         return (
-            <div className="mb-8 group">
-                <div className="max-w-2xl bg-white/[0.03] border border-white/10 rounded-3xl rounded-bl-lg px-8 py-10 space-y-8 backdrop-blur-xl relative overflow-hidden transition-all duration-500 hover:bg-white/[0.05] hover:border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.3)]">
+            <div className="mb-8 group flex gap-4 pr-12">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm flex items-center justify-center">
+                   <div className="w-3 h-3 bg-white/40 blur-[1px] rounded-full absolute mix-blend-overlay" />
+                </div>
+                <div className="max-w-2xl bg-white border border-[#EFEFEF] rounded-3xl rounded-tl-sm px-8 py-10 space-y-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
                     {/* Interior Glow */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2" />
 
                     {/* Sanskrit */}
                     <div className="text-center space-y-2 relative z-10">
-                        <p className="font-tiro text-2xl md:text-3xl text-accent leading-[1.6] whitespace-pre-line drop-shadow-[0_2px_10px_rgba(212,163,115,0.2)]">
+                        <p className="font-tiro text-2xl md:text-3xl text-zinc-800 leading-[1.6] whitespace-pre-line">
                             {message.content}
                         </p>
                         {message.source && (
                             <div className="pt-4">
-                                <span className="inline-block px-3 py-1 bg-white/5 rounded-full border border-white/5 text-[9px] tracking-[0.3em] font-sans text-white/40 uppercase">
+                                <span className="inline-block px-3 py-1 bg-zinc-100 rounded-full text-[10px] tracking-[0.2em] font-sans text-zinc-500 uppercase font-medium">
                                     {message.source}
                                 </span>
                             </div>
@@ -255,18 +174,18 @@ function MessageBubble({ message }: { message: Message }) {
 
                     {/* Divine Divider */}
                     <div className="flex items-center justify-center gap-4 py-2">
-                        <div className="h-px w-12 bg-gradient-to-r from-transparent to-white/10" />
+                        <div className="h-px w-12 bg-gradient-to-r from-transparent to-zinc-200" />
                         <div className="w-2 h-2 border border-accent/40 rounded-full rotate-45 transform flex items-center justify-center">
                             <div className="w-0.5 h-0.5 bg-accent rounded-full" />
                         </div>
-                        <div className="h-px w-12 bg-gradient-to-l from-transparent to-white/10" />
+                        <div className="h-px w-12 bg-gradient-to-l from-transparent to-zinc-200" />
                     </div>
 
                     {/* Hindi Meaning */}
                     {message.subContent && (
                         <div className="relative z-10">
-                            <p className="text-accent/40 text-[9px] tracking-[0.3em] uppercase mb-3 font-sans font-medium">Divya Artha</p>
-                            <p className="font-tiro text-white/70 text-lg leading-relaxed italic border-l-2 border-accent/20 pl-6 py-1">
+                            <p className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase mb-3 font-sans font-semibold">Divya Artha</p>
+                            <p className="font-tiro text-zinc-600 text-lg leading-relaxed italic border-l-2 border-accent/40 pl-6 py-1">
                                 {message.subContent}
                             </p>
                         </div>
@@ -278,10 +197,11 @@ function MessageBubble({ message }: { message: Message }) {
 
     if (message.type === 'meaning') {
         return (
-            <div className="mb-6">
-                <div className="max-w-2xl bg-white/[0.02] border border-white/5 rounded-2xl rounded-bl-md px-8 py-7 shadow-sm backdrop-blur-lg">
-                    <p className="text-white/25 text-[9px] tracking-[0.3em] uppercase mb-4 font-sans">Bodha • Understanding</p>
-                    <p className="text-white/70 font-sans text-base leading-relaxed tracking-wide">
+             <div className="mb-6 flex gap-4 pr-12">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm opacity-0" />
+                <div className="max-w-2xl bg-[#F9F9F9] border border-[#EFEFEF] rounded-2xl px-8 py-7 shadow-sm">
+                    <p className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase mb-4 font-sans font-semibold">Bodha • Understanding</p>
+                    <p className="text-zinc-700 font-sans text-base leading-relaxed tracking-wide">
                         {message.content}
                     </p>
                 </div>
@@ -291,11 +211,12 @@ function MessageBubble({ message }: { message: Message }) {
 
     if (message.type === 'reflection') {
         return (
-            <div className="mb-8">
-                <div className="max-w-2xl bg-accent/[0.02] border border-accent/15 rounded-2xl rounded-bl-md px-8 py-7 backdrop-blur-lg relative overflow-hidden">
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/5 blur-[30px] rounded-full" />
-                    <p className="text-accent/40 text-[9px] tracking-[0.3em] uppercase mb-4 font-sans font-medium">Chintana • Reflection</p>
-                    <p className="font-serif text-white/60 text-xl leading-relaxed italic">
+             <div className="mb-8 flex gap-4 pr-12">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm opacity-0" />
+                <div className="max-w-2xl bg-accent/[0.05] border border-accent/20 rounded-2xl px-8 py-7 relative overflow-hidden">
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/10 blur-[30px] rounded-full" />
+                    <p className="text-accent/80 text-[10px] tracking-[0.2em] uppercase mb-4 font-sans font-semibold">Chintana • Reflection</p>
+                    <p className="font-serif text-zinc-800 text-xl leading-relaxed italic">
                         &quot;{message.content}&quot;
                     </p>
                 </div>
@@ -306,7 +227,7 @@ function MessageBubble({ message }: { message: Message }) {
     // system
     return (
         <div className="text-center mb-6">
-            <p className="text-white/30 text-sm font-sans">{message.content}</p>
+            <p className="text-zinc-400 text-sm font-sans">{message.content}</p>
         </div>
     )
 }
@@ -588,7 +509,8 @@ export default function DashboardPage() {
                     const part = data.parts[i]
                     let msgType: Message['type'] = 'system'
 
-                    if (part.type === 'acknowledge') msgType = 'system'
+                    if (part.type === 'chat') msgType = 'chat'
+                    else if (part.type === 'acknowledge') msgType = 'chat'
                     else if (part.type === 'scripture') msgType = 'shlok'
                     else if (part.type === 'teaching') msgType = 'meaning'
                     else if (part.type === 'guidance') msgType = 'reflection'
@@ -605,7 +527,7 @@ export default function DashboardPage() {
                 // Fallback: single message
                 newMessages.push({
                     id: (now + 1).toString(),
-                    type: 'reflection',
+                    type: 'chat',
                     content: data.reply,
                     timestamp: new Date(),
                 })
@@ -647,121 +569,209 @@ export default function DashboardPage() {
     if (!isAuthenticated) return null
 
     return (
-        <div className="h-screen bg-background flex overflow-hidden relative">
-            {/* Ambient Background Layers */}
-            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                {/* Indigo Flow */}
-                <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-ambient-indigo/40 blur-[120px] rounded-full animate-[pulse_6s_ease-in-out_infinite]" />
-                {/* Violet Pulse */}
-                <div className="absolute top-[20%] -right-[5%] w-[50%] h-[50%] bg-ambient-violet/30 blur-[100px] rounded-full animate-[pulse_8s_ease-in-out_infinite]" style={{ animationDelay: '1000ms' }} />
-                {/* Saffron Glow */}
-                <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[40%] bg-ambient-saffron blur-[110px] rounded-full animate-[pulse_10s_ease-in-out_infinite]" style={{ animationDelay: '2000ms' }} />
-                {/* Center Ink Depth */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/20 to-background" />
-            </div>
+        <div className="h-screen bg-[#F7F7F7] flex items-center justify-center p-2 md:p-4 lg:p-6">
+            <div className="bg-white rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border border-[#EFEFEF]">
+                {/* Sidebar */}
+                <DashboardSidebar
+                    userName={userName}
+                    onLogout={handleLogout}
+                    onNewReflection={handleNewReflection}
+                />
 
-            {/* Sidebar Overlay for depth */}
-            <div className="absolute inset-0 z-0 bg-white/[0.01] backdrop-blur-[2px] pointer-events-none" />
+                {/* Main Content */}
+                <main className="flex-1 flex flex-col h-full relative z-10 bg-white">
+                    {/* Top Bar */}
+                    <header className="flex items-center justify-between px-8 py-5">
+                        <div className="flex items-center gap-3">
+                            <h2 className="font-serif text-zinc-800 text-lg tracking-wide font-medium">
+                                Tatvam <span className="inline-block ml-2 px-2 py-0.5 rounded-full border border-zinc-200 text-[10px] uppercase font-sans text-zinc-400 bg-zinc-50 align-middle">Plus</span>
+                            </h2>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-sans font-medium transition-colors">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                                Configuration
+                            </button>
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-200 hover:bg-zinc-50 text-zinc-600 text-sm font-sans font-medium transition-colors">
+                                Share
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            </button>
+                            <button
+                                onClick={handleNewReflection}
+                                className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#111111] hover:bg-black/80 text-white text-sm font-sans font-medium transition-colors"
+                            >
+                                New Reflection
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9L22 10L16 15L17.5 22L12 18L6.5 22L8 15L2 10L9.5 9L12 2Z" /></svg>
+                            </button>
+                        </div>
+                    </header>
 
-            {/* Sidebar */}
-            <DashboardSidebar
-                isOpen={sidebarOpen}
-                onToggle={() => setSidebarOpen(!sidebarOpen)}
-                userName={userName}
-                onLogout={handleLogout}
-                onNewReflection={handleNewReflection}
-                conversations={conversations}
-                activeId={activeConversationId}
-                onSelectConversation={(id) => setActiveConversationId(id)}
-            />
+                    {/* Messages Area / Empty State */}
+                    <div className="flex-1 overflow-y-auto px-6 md:px-12 lg:px-24 py-8">
+                        <div className="max-w-[800px] mx-auto h-full flex flex-col">
+                            {messages.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center -mt-20">
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 mb-6 flex items-center justify-center shadow-[0_10px_30px_rgba(201,151,110,0.3)]">
+                                        <div className="w-6 h-6 bg-white/40 blur-[2px] rounded-full absolute mix-blend-overlay" />
+                                    </div>
+                                    <h1 className="text-3xl font-sans font-semibold text-zinc-800 mb-2 tracking-tight">
+                                        Hi, {userName} 👋
+                                    </h1>
+                                    <p className="text-zinc-500 font-sans text-base mb-12">
+                                        Seek timeless wisdom, and find your center here.
+                                    </p>
 
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col h-full relative z-10">
-                {/* Top Bar Glow Effect */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent z-20" />
-                <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black/10 backdrop-blur-sm">
-                    {!sidebarOpen && (
-                        <button
-                            onClick={() => setSidebarOpen(true)}
-                            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-white/50 hover:text-white mr-4"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="3" y1="12" x2="21" y2="12" />
-                                <line x1="3" y1="18" x2="21" y2="18" />
-                            </svg>
-                        </button>
-                    )}
-                    <h2 className="font-serif text-white/50 text-sm tracking-wide">
-                        {conversations.find(c => c.id === activeConversationId)?.title || "Reflection"}
-                    </h2>
-                    <div />
-                </header>
-
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto px-6 md:px-12 lg:px-24 py-8">
-                    <div className="max-w-3xl mx-auto">
-                        {messages.map(msg => (
-                            <MessageBubble key={msg.id} message={msg} />
-                        ))}
-                        {isThinking && (
-                            <div className="mb-10">
-                                <div className="max-w-md bg-white/[0.02] border border-white/5 rounded-2xl rounded-bl-md px-8 py-6 backdrop-blur-md">
-                                    <div className="flex items-center gap-4">
-                                        <div className="relative">
-                                            <div className="w-3 h-3 bg-accent/40 rounded-full animate-ping absolute inset-0" />
-                                            <div className="w-3 h-3 bg-accent rounded-full relative z-10 shadow-[0_0_10px_rgba(212,163,115,0.5)]" />
+                                    {/* Suggestion Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-8">
+                                        {/* Card 1: Dark Mode / Immersive */}
+                                        <div 
+                                            onClick={() => setInputValue("What is the core message of the Bhagavad Gita regarding duty?")}
+                                            className="bg-[#111111] rounded-3xl p-6 text-white flex flex-col cursor-pointer transition-transform hover:scale-[1.02]"
+                                        >
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-accent to-yellow-500 flex items-center justify-center text-[10px] font-bold">G</div>
+                                                <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-full text-white">Spiritual Guide</span>
+                                            </div>
+                                            <p className="text-sm text-zinc-300 flex-1 leading-relaxed">
+                                                Explore the depths of your inner self and understand the nature of Dharma through ancient scriptures.
+                                            </p>
                                         </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-sans font-medium">Dhyana</span>
-                                            <span className="text-white/20 text-xs font-sans italic">Tatvam is sitting with your words...</span>
+
+                                        {/* Card 2: Tasks */}
+                                        <div className="bg-white border text-left border-zinc-200 rounded-3xl p-6 flex flex-col relative">
+                                            <p className="text-xs text-zinc-400 font-medium mb-3 absolute bottom-3 left-6">Vedic Tasks</p>
+                                            <a href="#" className="text-[10px] text-blue-500 absolute bottom-3 right-6 font-medium hover:underline">View All</a>
+                                            <div className="space-y-4 mb-8">
+                                                <button onClick={() => setInputValue("Read a daily reflection on patience.")} className="flex items-start gap-3 w-full text-left group">
+                                                    <svg className="w-4 h-4 text-zinc-400 mt-0.5 group-hover:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                                    <span className="text-sm text-zinc-600 group-hover:text-zinc-900 transition-colors">Daily reflection on Patience</span>
+                                                </button>
+                                                <button onClick={() => setInputValue("How did Arjuna find focus?")} className="flex items-start gap-3 w-full text-left group">
+                                                    <svg className="w-4 h-4 text-zinc-400 mt-0.5 group-hover:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                                    <span className="text-sm text-zinc-600 group-hover:text-zinc-900 transition-colors">How did Arjuna find focus?</span>
+                                                </button>
+                                            </div>
                                         </div>
+
+                                        {/* Card 3: Suggested prompt */}
+                                        <div 
+                                            onClick={() => setInputValue("I'm feeling very overwhelmed by the workload today. How can I regain my balance?")}
+                                            className="bg-white border border-zinc-200 rounded-3xl p-6 flex flex-col relative cursor-pointer hover:border-zinc-300 transition-colors"
+                                        >
+                                            <p className="text-zinc-800 text-sm font-medium leading-relaxed">
+                                                I&apos;m feeling very overwhelmed by the workload today. How can I regain my balance?
+                                            </p>
+                                            <div className="absolute top-4 right-4 text-zinc-400">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                                            </div>
+                                            <p className="text-[10px] text-zinc-400 font-medium mt-auto absolute bottom-4">Suggested thought</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Pills */}
+                                    <div className="flex flex-wrap items-center justify-center gap-3">
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
+                                            <svg width="14" height="14" className="text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                            Connect Calendar
+                                        </button>
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
+                                            <svg width="14" height="14" className="text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+                                            Demo Mode
+                                        </button>
+                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
+                                            <svg width="14" height="14" className="text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                            Browse Stories
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    {messages.map(msg => (
+                                        <MessageBubble key={msg.id} message={msg} />
+                                    ))}
+                                    {isThinking && (
+                                        <div className="mb-10">
+                                            <div className="max-w-md bg-white border border-[#EFEFEF] shadow-sm rounded-2xl rounded-bl-md px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="relative">
+                                                        <div className="w-3 h-3 bg-accent/40 rounded-full animate-ping absolute inset-0" />
+                                                        <div className="w-3 h-3 bg-accent rounded-full relative z-10" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase font-sans font-bold">Dhyana</span>
+                                                        <span className="text-zinc-500 text-xs font-sans italic">Tatvam is gathering thoughts...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div ref={messagesEndRef} />
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Input Bar - The Capsule */}
+                    <div className="px-6 md:px-12 lg:px-24 pb-8 pt-4">
+                        <div className="max-w-[800px] mx-auto">
+                            <div className="flex flex-col bg-white border border-zinc-200 rounded-3xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-zinc-300 transition-colors">
+                                {/* Input Box Row */}
+                                <div className="flex items-center px-4 pb-2">
+                                    <svg width="16" height="16" className="text-accent mr-3 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                                    <input
+                                        type="text"
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                        placeholder="Ask me anything..."
+                                        disabled={isThinking || remaining <= 0}
+                                        className="flex-1 bg-transparent text-zinc-800 placeholder-zinc-400 focus:outline-none text-base font-sans disabled:opacity-50 min-h-[44px]"
+                                    />
+                                </div>
+                                
+                                {/* Bottom Action Row */}
+                                <div className="flex items-center justify-between pt-2">
+                                    <div className="flex items-center gap-2">
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 text-xs text-zinc-600 font-medium hover:bg-zinc-50 transition-colors">
+                                            Select Source
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-zinc-600 font-medium hover:bg-zinc-50 border border-transparent hover:border-zinc-200 transition-colors">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                            Attach
+                                        </button>
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-zinc-600 font-medium hover:bg-zinc-50 border border-transparent hover:border-zinc-200 transition-colors">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                                            Voice
+                                        </button>
+                                        <button
+                                            onClick={handleSend}
+                                            disabled={!inputValue.trim() || isThinking || remaining <= 0}
+                                            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#111111] hover:bg-black/80 text-white text-xs font-semibold disabled:opacity-20 transition-all shadow-md ml-1"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M5 12h14M12 5l7 7-7 7" />
+                                            </svg>
+                                            Send
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-                </div>
 
-                {/* Input Bar */}
-                <div className="relative z-10 px-6 md:px-12 lg:px-24 pb-8 pt-4">
-                    <div className="max-w-3xl mx-auto">
-                        <div className="flex items-center gap-4 bg-white/[0.03] border border-white/10 rounded-[24px] px-6 py-4.5 focus-within:border-accent/40 focus-within:bg-white/[0.05] transition-all duration-300 shadow-[0_10px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl group">
-                            <input
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                placeholder="Share a thought or ask for reflection..."
-                                disabled={isThinking || remaining <= 0}
-                                className="flex-1 bg-transparent text-white placeholder-white/20 focus:outline-none text-base font-sans disabled:opacity-50"
-                            />
-                            <button
-                                onClick={handleSend}
-                                disabled={!inputValue.trim() || isThinking || remaining <= 0}
-                                className="p-2.5 rounded-xl bg-accent text-accent-foreground hover:bg-white/90 active:scale-95 transition-all duration-200 disabled:opacity-20 disabled:grayscale disabled:scale-100 shadow-[0_0_15px_var(--color-accent)]"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="text-center mt-5 flex flex-col items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity duration-500">
-                            <p className="text-white/30 text-[9px] tracking-[0.3em] font-sans uppercase font-medium">
-                                Tatvam • Timeless Wisdom for the Modern Soul
-                            </p>
-                            <p className={`text-[10px] tracking-[0.1em] font-sans font-medium ${remaining <= 0 ? 'text-red-400/80' : remaining <= 2 ? 'text-accent/80' : 'text-white/20'
-                                }`}>
-                                {remaining <= 0
-                                    ? `Reflections used for today • Next available in ${getNextResetTime()}`
-                                    : `${remaining} of ${RATE_LIMIT} reflections remaining today`
-                                }
-                            </p>
+                            {/* Footer text */}
+                            <div className="text-center mt-4 opacity-70">
+                                <p className={`text-[10px] font-sans font-medium ${remaining <= 0 ? 'text-red-500' : 'text-zinc-400'}`}>
+                                    {remaining <= 0
+                                        ? `Reflections exhausted. Resets in ${getNextResetTime()}`
+                                        : `Tatvam may display inaccurate information. Your Reflections: ${remaining} of ${RATE_LIMIT} remaining.`}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     )
 }
