@@ -34,37 +34,58 @@
 }
 
 .dark {
-  --background: #0A0A0C; /* Deep Celestial Void */
-  --foreground: #F2ECE4; /* Starry Silver/Parchment */
-  --surface: #121114; /* Elevated Cosmic Surface */
-  --surface-hover: #1A191D;
-  --card: rgba(18, 17, 20, 0.6);
-  --card-foreground: #F2ECE4;
-  --popover: #0A0A0C;
-  --popover-foreground: #F2ECE4;
-  --primary: #E0B36E; /* Surya Gold */
-  --primary-foreground: #0A0A0C;
-  --secondary: #1A1A2E; /* Spiritual Indigo */
-  --secondary-foreground: #E8DCC8;
-  --muted: #1A1614;
-  --muted-foreground: #8B7E74;
-  --accent: #E0B36E; /* Vibrant Surya Gold */
-  --accent-foreground: #0A0A0C;
+  /* Deep Celestial Void */
+  --background: #0C0C0E;
+  --foreground: #EDE8DF;
+  --surface: #141416;
+  --surface-hover: #1C1C1F;
+  --card: #161618;
+  --card-foreground: #EDE8DF;
+  --popover: #141416;
+  --popover-foreground: #EDE8DF;
+  --primary: #D4A85A;
+  --primary-foreground: #0C0C0E;
+  --secondary: #1E1D22;
+  --secondary-foreground: #C8BCA8;
+  --muted: #1E1D22;
+  --muted-foreground: #7A6E64;
+  --accent: #D4A85A;
+  --accent-foreground: #0C0C0E;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: rgba(224, 179, 110, 0.15);
-  --input: rgba(255, 255, 255, 0.04);
-  --ring: #E0B36E;
-
-  /* Ambient Cosmic Palette */
+  --border: rgba(212, 168, 90, 0.10);
+  --input: rgba(255, 255, 255, 0.05);
+  --ring: #D4A85A;
+  --sidebar: #111113;
+  --sidebar-foreground: #EDE8DF;
   --ambient-indigo: #1A1A2E;
   --ambient-violet: #2D2338;
-  --ambient-saffron: rgba(224, 179, 110, 0.4);
-
-  /* Mythological extras */
+  --ambient-saffron: rgba(212, 168, 90, 0.3);
   --gold: #D4A85A;
   --temple-crimson: #7A1A1A;
   --manuscript-bg: #0C0905;
+}
+
+.sepia {
+  --background: #F5EDD8;
+  --foreground: #3A2E1E;
+  --card: #F9F3E3;
+  --card-foreground: #3A2E1E;
+  --popover: #F5EDD8;
+  --popover-foreground: #3A2E1E;
+  --primary: #8B6534;
+  --primary-foreground: #F5EDD8;
+  --secondary: #DDD0B0;
+  --secondary-foreground: #3A2E1E;
+  --muted: #C9BA98;
+  --muted-foreground: #6B5A3E;
+  --accent: #A0722A;
+  --accent-foreground: #F5EDD8;
+  --border: #D4C49A;
+  --input: #EDE5CC;
+  --ring: #8B6534;
+  --sidebar: #EFE5C8;
+  --sidebar-foreground: #3A2E1E;
 }
 
 

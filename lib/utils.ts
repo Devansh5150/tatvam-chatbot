@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 // ─── Rate Limit Helpers ────────────────────────────────────────────────────────
 
-export const RATE_LIMIT = 5
+export const RATE_LIMIT = 999999
 export const RATE_WINDOW_MS = 24 * 60 * 60 * 1000 // 24 hours
 export const RATE_LIMIT_KEY = 'tatvam_message_timestamps'
 

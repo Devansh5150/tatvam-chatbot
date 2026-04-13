@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'motion/react'
 import { RATE_LIMIT, getRemainingMessages, getNextResetTime, recordMessageTimestamp } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,7 +23,31 @@ interface Conversation {
     updatedAt: number
 }
 
-// Rate limit logic removed (now in lib/utils.ts)
+// ─── Animation Components ────────────────────────────────────────────────────
+
+const WordReveal = ({ text, delay = 0 }: { text: string; delay?: number }) => {
+    const words = text.split(' ')
+    
+    return (
+        <span className="inline-block">
+            {words.map((word, i) => (
+                <motion.span
+                    key={i}
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{
+                        duration: 0.4,
+                        delay: delay + i * 0.03,
+                        ease: [0.2, 0.65, 0.3, 0.9],
+                    }}
+                    className="inline-block mr-[0.25em]"
+                >
+                    {word}
+                </motion.span>
+            ))}
+        </span>
+    )
+}
 
 // ─── Shlok Data ───────────────────────────────────────────────────────────────
 
@@ -50,75 +75,395 @@ const DAILY_SHLOKS = [
     },
 ]
 
-// ─── Minimalist Icon Sidebar ──────────────────────────────────────────────────
+// ─── Sidebar Types & Helpers ─────────────────────────────────────────────────
+
+type SidebarPanel = 'bhajans' | 'shlok_guide' | 'settings' | null
+
+const BHAJANS = [
+    { title: 'Om Namah Shivaya', artist: 'Traditional', src: '' },
+    { title: 'Hare Krishna Mahamantra', artist: 'ISKCON', src: '' },
+    { title: 'Gayatri Mantra', artist: 'Traditional', src: '' },
+    { title: 'Hanuman Chalisa', artist: 'Tulsidas', src: '' },
+    { title: 'Raghupati Raghava Raja Ram', artist: 'Traditional', src: '' },
+    { title: 'Achyutam Keshavam', artist: 'Traditional', src: '' },
+]
+
+const SHLOK_GUIDE: { mood: string; emoji: string; shlok: string; source: string; meaning: string }[] = [
+    { mood: 'Anxious / Stressed', emoji: '🌊', shlok: 'योगस्थः कुरु कर्माणि सङ्गं त्यक्त्वा धनञ्जय।', source: 'Bhagavad Gita 2.48', meaning: 'Do your duty with equanimity, giving up attachment. Let go of success and failure.' },
+    { mood: 'Lost / Purposeless', emoji: '🌿', shlok: 'उद्धरेदात्मनात्मानं नात्मानमवसादयेत्।', source: 'Bhagavad Gita 6.5', meaning: 'Elevate yourself through the power of your own mind. You are your own best friend.' },
+    { mood: 'Angry / Resentful', emoji: '🔥', shlok: 'क्षमा धर्मः क्षमा सत्यं क्षमा भूतं च भावि च', source: 'Mahabharata — Udyoga Parva', meaning: 'Forgiveness is dharma. Forgiveness is truth. It is both the past and the future.' },
+    { mood: 'Grieving / Sad', emoji: '🪔', shlok: 'सर्वधर्मान्परित्यज्य मामेकं शरणं व्रज।', source: 'Bhagavad Gita 18.66', meaning: 'Surrender unto Me alone. I shall deliver you from all suffering; do not grieve.' },
+    { mood: 'Procrastinating', emoji: '⚡', shlok: 'तस्मात्त्वमुत्तिष्ठ यशो लभस्व', source: 'Bhagavad Gita 11.33', meaning: 'Therefore arise and attain glory. You are but an instrument — act now.' },
+    { mood: 'Overworked / Burnt out', emoji: '🌸', shlok: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।', source: 'Bhagavad Gita 2.47', meaning: 'You have the right to work, but not to its fruits. Work without craving results.' },
+]
+
+// ─── Bhajan Panel ─────────────────────────────────────────────────────────────
+
+function BhajanPanel({ onClose }: { onClose: () => void }) {
+    const [playing, setPlaying] = React.useState<number | null>(null)
+
+    return (
+        <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+                <div>
+                    <h3 className="font-serif text-foreground text-base font-medium">Bhajans</h3>
+                    <p className="text-muted-foreground text-xs mt-0.5 font-sans">Mind-soothing sacred music</p>
+                </div>
+                <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div className="mx-4 mt-4 px-4 py-3 bg-accent/5 border border-accent/20 rounded-2xl">
+                <p className="text-accent text-xs font-sans font-medium tracking-wide">🎵 Audio coming soon</p>
+                <p className="text-muted-foreground text-[11px] mt-1 font-sans leading-relaxed">We are curating sacred bhajans. They will appear here shortly.</p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+                {BHAJANS.map((b, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setPlaying(playing === i ? null : i)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${
+                            playing === i
+                                ? 'border-accent/40 bg-accent/5'
+                                : 'border-border hover:border-accent/20 hover:bg-muted'
+                        }`}
+                    >
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            playing === i ? 'bg-accent/20' : 'bg-muted'
+                        }`}>
+                            {playing === i ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-accent">
+                                    <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
+                                </svg>
+                            ) : (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-muted-foreground">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-sans font-medium truncate ${ playing === i ? 'text-accent' : 'text-foreground' }`}>{b.title}</p>
+                            <p className="text-muted-foreground text-[11px] font-sans">{b.artist}</p>
+                        </div>
+                        {playing === i && (
+                            <div className="flex items-end gap-0.5 h-4">
+                                {[1, 2, 3].map(j => (
+                                    <div key={j} className="w-1 bg-accent rounded-full animate-bounce" style={{ height: `${8 + j * 4}px`, animationDelay: `${j * 0.1}s` }} />
+                                ))}
+                            </div>
+                        )}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// ─── Daily Shlok Guide Panel ──────────────────────────────────────────────────
+
+function ShlokGuidePanel({ onClose, onInjectShlok }: { onClose: () => void; onInjectShlok: (s: typeof SHLOK_GUIDE[0]) => void }) {
+    const [selected, setSelected] = React.useState<number | null>(null)
+
+    return (
+        <div className="w-80 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+                <div>
+                    <h3 className="font-serif text-foreground text-base font-medium">Daily Shlok Guide</h3>
+                    <p className="text-muted-foreground text-xs mt-0.5 font-sans">Choose your mood, receive wisdom</p>
+                </div>
+                <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <p className="px-5 pt-4 pb-2 text-muted-foreground text-xs font-sans">How are you feeling right now?</p>
+
+            <div className="flex-1 overflow-y-auto px-4 space-y-2 pb-4">
+                {SHLOK_GUIDE.map((s, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setSelected(selected === i ? null : i)}
+                        className={`w-full text-left px-4 py-3 rounded-2xl border transition-all ${
+                            selected === i ? 'border-accent/40 bg-accent/5' : 'border-border hover:border-accent/20 hover:bg-muted'
+                        }`}
+                    >
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base">{s.emoji}</span>
+                            <span className={`text-sm font-sans font-medium ${ selected === i ? 'text-accent' : 'text-foreground' }`}>{s.mood}</span>
+                        </div>
+                        {selected === i && (
+                            <div className="mt-2 space-y-2">
+                                <p className="font-tiro text-foreground text-sm leading-relaxed">{s.shlok}</p>
+                                <p className="text-[10px] text-muted-foreground font-sans uppercase tracking-wider">{s.source}</p>
+                                <p className="text-muted-foreground text-xs font-sans leading-relaxed italic">{s.meaning}</p>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onInjectShlok(s); onClose() }}
+                                    className="mt-1 w-full py-2 bg-[#111] text-white text-xs font-sans font-medium rounded-xl hover:bg-black/80 transition-colors"
+                                >
+                                    Bring this to my chat
+                                </button>
+                            </div>
+                        )}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+// ─── Settings Panel ───────────────────────────────────────────────────────────
+
+type AppTheme = 'light' | 'sepia' | 'dark'
+
+function applyTheme(t: AppTheme) {
+    const root = document.documentElement
+    root.classList.remove('dark', 'sepia')
+    if (t === 'dark') root.classList.add('dark')
+    if (t === 'sepia') root.classList.add('sepia')
+    localStorage.setItem('tatvam_theme', t)
+}
+
+function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
+    const [theme, setTheme] = React.useState<AppTheme>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('tatvam_theme') as AppTheme) || 'light'
+        }
+        return 'light'
+    })
+
+    const handleTheme = (t: AppTheme) => {
+        setTheme(t)
+        applyTheme(t)
+    }
+
+    const THEMES: { key: AppTheme; label: string; preview: string }[] = [
+        { key: 'light', label: 'Light', preview: 'bg-white' },
+        { key: 'sepia', label: 'Sepia', preview: 'bg-[#F5EDD8]' },
+        { key: 'dark', label: 'Dark', preview: 'bg-[#0A0A0C]' },
+    ]
+
+    return (
+        <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+                <div>
+                    <h3 className="font-serif text-foreground text-base font-medium">Settings</h3>
+                    <p className="text-muted-foreground text-xs mt-0.5 font-sans">Personalise your experience</p>
+                </div>
+                <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+                {/* Theme */}
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-sans font-semibold uppercase tracking-widest mb-3">Theme</p>
+                    <div className="flex gap-2">
+                        {THEMES.map(t => (
+                            <button
+                                key={t.key}
+                                onClick={() => handleTheme(t.key)}
+                                className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all ${
+                                    theme === t.key
+                                        ? 'border-accent bg-accent/5'
+                                        : 'border-border hover:border-accent/30'
+                                }`}
+                            >
+                                <div className={`w-6 h-6 rounded-full border border-border ${t.preview}`} />
+                                <span className={`text-[11px] font-sans font-medium capitalize ${
+                                    theme === t.key ? 'text-accent' : 'text-muted-foreground'
+                                }`}>{t.label}</span>
+                                {theme === t.key && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Active Plan */}
+                <div className="px-4 py-4 rounded-2xl border border-border bg-muted">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] text-muted-foreground font-sans font-semibold uppercase tracking-widest mb-1">Active Plan</p>
+                            <p className="text-foreground text-sm font-serif font-medium">Tatvam Free</p>
+                            <p className="text-muted-foreground text-[11px] font-sans mt-0.5">Unlimited reflections</p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-background text-muted-foreground text-[10px] font-sans font-medium uppercase tracking-wide border border-border">Free</span>
+                    </div>
+                    <button className="mt-3 w-full py-2 rounded-xl bg-accent text-accent-foreground text-xs font-sans font-medium hover:opacity-90 transition-opacity">
+                        Upgrade to Plus
+                    </button>
+                </div>
+
+                {/* Profile */}
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-sans font-semibold uppercase tracking-widest mb-2">Profile</p>
+                    <button
+                        onClick={() => window.location.href = '/profile'}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-border hover:border-accent/30 hover:bg-muted transition-all"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span className="text-sm font-sans text-foreground font-medium">View Profile</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="ml-auto text-muted-foreground"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+
+                {/* Notifications */}
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-sans font-semibold uppercase tracking-widest mb-2">Notifications</p>
+                    <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-border">
+                        <span className="text-sm font-sans text-foreground">Daily reminder</span>
+                        <div className="w-10 h-6 rounded-full bg-accent/20 relative">
+                            <div className="w-4 h-4 rounded-full bg-accent absolute right-1 top-1" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sign out */}
+                <div className="pt-2">
+                    <button
+                        onClick={onLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span className="text-sm font-sans font-medium">Sign out</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ─── Sidebar Btn ──────────────────────────────────────────────────────────────
+
+function SidebarBtn({
+
+    label, active, onClick, children, badge,
+}: {
+    label: string; active?: boolean; onClick?: () => void; children: React.ReactNode; badge?: React.ReactNode
+}) {
+    return (
+        <div className="relative group/tip flex items-center">
+            <button
+                onClick={onClick}
+                className={`p-3 rounded-xl transition-all relative ${
+                    active ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+            >
+                {children}
+                {badge}
+            </button>
+            <div className="pointer-events-none absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-sans rounded-md whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-lg">
+                {label}
+            </div>
+        </div>
+    )
+}
+
+// ─── Main Sidebar ─────────────────────────────────────────────────────────────
 
 function DashboardSidebar({
     userName,
     onLogout,
     onNewReflection,
+    activePanel,
+    onTogglePanel,
 }: {
     userName: string
     onLogout: () => void
     onNewReflection: () => void
+    activePanel: SidebarPanel
+    onTogglePanel: (p: SidebarPanel) => void
 }) {
     return (
-        <aside className="w-[70px] h-full bg-white flex flex-col items-center py-6 border-r border-[#EFEFEF] shrink-0 z-20">
-            {/* Logo / Glowing Orb */}
+        <aside className="w-[70px] h-full bg-card flex flex-col items-center py-6 border-r border-border shrink-0 z-20 transition-colors duration-300">
+            {/* Logo */}
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 shadow-[0_4px_15px_rgba(201,151,110,0.3)] mb-10 flex items-center justify-center">
                 <div className="w-4 h-4 bg-white/40 blur-[2px] rounded-full absolute mix-blend-overlay" />
             </div>
 
-            {/* Navigation Icons */}
-            <nav className="flex flex-col gap-6 flex-1 w-full items-center">
-                <button
-                    onClick={onNewReflection}
-                    className="p-3 bg-[#111111] text-white rounded-[14px] hover:bg-black/80 transition-colors shadow-md relative group"
+            <nav className="flex flex-col gap-2 flex-1 w-full items-center">
+                {/* New Reflection */}
+                <div className="relative group/tip flex items-center">
+                    <button
+                        onClick={onNewReflection}
+                        className="p-3 bg-[#111111] text-white rounded-[14px] hover:bg-black/80 transition-colors shadow-md relative"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <div className="absolute -top-1 -right-1 flex rotate-12">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                               <path d="M12 2L15 9L22 10L17 15L18.5 22L12 18L5.5 22L7 15L2 10L9 9L12 2Z" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div className="pointer-events-none absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-sans rounded-md whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-lg">
+                        New Reflection
+                    </div>
+                </div>
+
+                <div className="h-4" />
+
+                {/* Bhajans */}
+                <SidebarBtn
+                    label="Bhajans"
+                    active={activePanel === 'bhajans'}
+                    onClick={() => onTogglePanel(activePanel === 'bhajans' ? null : 'bhajans')}
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
                     </svg>
-                    {/* New Badge */}
-                    <div className="absolute -top-1 -right-1 flex rotate-12">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                           <path d="M12 2L15 9L22 10L17 15L18.5 22L12 18L5.5 22L7 15L2 10L9 9L12 2Z" />
-                        </svg>
-                    </div>
-                </button>
+                </SidebarBtn>
 
-                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
-                </button>
-                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                </button>
-                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19.5 12.572L12 20l-7.5-7.428m0 0A5 5 0 1 1 12 5.5a5 5 0 1 1 7.5 7.072z" /></svg>
-                </button>
-                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                </button>
-                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors relative">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                    <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full" />
-                </button>
+                {/* Daily Shlok Guide */}
+                <SidebarBtn
+                    label="Daily Shlok Guide"
+                    active={activePanel === 'shlok_guide'}
+                    onClick={() => onTogglePanel(activePanel === 'shlok_guide' ? null : 'shlok_guide')}
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                </SidebarBtn>
             </nav>
 
-            {/* Profile Avatar & Settings */}
-            <div className="flex flex-col gap-6 items-center mt-auto pb-4">
-                <button className="p-3 text-zinc-400 hover:text-zinc-800 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-                </button>
-                <button
-                    onClick={onLogout}
-                    className="w-10 h-10 rounded-full flex mx-auto items-center justify-center font-serif text-sm font-medium border border-[#EBEBEB] text-[#111111] hover:bg-[#F9F9F9] transition-colors relative"
+            {/* Settings & Avatar */}
+            <div className="flex flex-col gap-4 items-center mt-auto pb-4">
+                <SidebarBtn
+                    label="Settings"
+                    active={activePanel === 'settings'}
+                    onClick={() => onTogglePanel(activePanel === 'settings' ? null : 'settings')}
                 >
-                    {userName.charAt(0).toUpperCase()}
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
-                </button>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </SidebarBtn>
+
+                <div className="relative group/tip flex items-center">
+                    <button
+                        onClick={() => onTogglePanel(activePanel === 'settings' ? null : 'settings')}
+                        className="w-10 h-10 rounded-full flex mx-auto items-center justify-center font-serif text-sm font-medium border border-border text-foreground hover:bg-muted transition-colors relative"
+                    >
+                        {userName.charAt(0).toUpperCase()}
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
+                    </button>
+                    <div className="pointer-events-none absolute left-full ml-3 px-2 py-1 bg-zinc-900 text-white text-xs font-sans rounded-md whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-lg">
+                        {userName}
+                    </div>
+                </div>
             </div>
         </aside>
     )
 }
+
+
+
 
 // ─── Message Bubble ──────────────────────────────────────────────────────────
 
@@ -126,8 +471,8 @@ function MessageBubble({ message }: { message: Message }) {
     if (message.type === 'user') {
         return (
             <div className="flex justify-end mb-6">
-                <div className="max-w-xl bg-[#F4F4F4] rounded-2xl rounded-br-sm px-6 py-4 shadow-sm border border-[#EBEBEB]">
-                    <p className="text-zinc-800 font-sans text-base leading-relaxed">{message.content}</p>
+                <div className="max-w-xl bg-muted rounded-2xl rounded-br-sm px-6 py-4 shadow-sm border border-border">
+                    <p className="text-foreground font-sans text-base leading-relaxed">{message.content}</p>
                 </div>
             </div>
         )
@@ -140,7 +485,7 @@ function MessageBubble({ message }: { message: Message }) {
                    <div className="w-3 h-3 bg-white/40 blur-[1px] rounded-full absolute mix-blend-overlay" />
                 </div>
                 <div className="max-w-2xl pt-1">
-                    <p className="text-zinc-700 font-sans text-base leading-relaxed tracking-wide">
+                    <p className="text-foreground/80 font-sans text-base leading-relaxed tracking-wide">
                         {message.content}
                     </p>
                 </div>
@@ -154,18 +499,18 @@ function MessageBubble({ message }: { message: Message }) {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm flex items-center justify-center">
                    <div className="w-3 h-3 bg-white/40 blur-[1px] rounded-full absolute mix-blend-overlay" />
                 </div>
-                <div className="max-w-2xl bg-white border border-[#EFEFEF] rounded-3xl rounded-tl-sm px-8 py-10 space-y-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+                <div className="max-w-2xl bg-card border border-border rounded-3xl rounded-tl-sm px-8 py-10 space-y-8 shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
                     {/* Interior Glow */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2" />
 
                     {/* Sanskrit */}
                     <div className="text-center space-y-2 relative z-10">
-                        <p className="font-tiro text-2xl md:text-3xl text-zinc-800 leading-[1.6] whitespace-pre-line">
+                        <p className="font-tiro text-2xl md:text-3xl text-foreground leading-[1.6] whitespace-pre-line">
                             {message.content}
                         </p>
                         {message.source && (
                             <div className="pt-4">
-                                <span className="inline-block px-3 py-1 bg-zinc-100 rounded-full text-[10px] tracking-[0.2em] font-sans text-zinc-500 uppercase font-medium">
+                                <span className="inline-block px-3 py-1 bg-muted rounded-full text-[10px] tracking-[0.2em] font-sans text-muted-foreground uppercase font-medium">
                                     {message.source}
                                 </span>
                             </div>
@@ -174,20 +519,20 @@ function MessageBubble({ message }: { message: Message }) {
 
                     {/* Divine Divider */}
                     <div className="flex items-center justify-center gap-4 py-2">
-                        <div className="h-px w-12 bg-gradient-to-r from-transparent to-zinc-200" />
+                        <div className="h-px w-12 bg-gradient-to-r from-transparent to-border" />
                         <div className="w-2 h-2 border border-accent/40 rounded-full rotate-45 transform flex items-center justify-center">
                             <div className="w-0.5 h-0.5 bg-accent rounded-full" />
                         </div>
-                        <div className="h-px w-12 bg-gradient-to-l from-transparent to-zinc-200" />
+                        <div className="h-px w-12 bg-gradient-to-l from-transparent to-border" />
                     </div>
 
                     {/* Hindi Meaning */}
                     {message.subContent && (
                         <div className="relative z-10">
-                            <p className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase mb-3 font-sans font-semibold">Divya Artha</p>
-                            <p className="font-tiro text-zinc-600 text-lg leading-relaxed italic border-l-2 border-accent/40 pl-6 py-1">
-                                {message.subContent}
-                            </p>
+                            <p className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase mb-3 font-sans font-semibold mt-6">Divya Artha</p>
+                            <div className="font-tiro text-muted-foreground text-lg leading-relaxed italic border-l-2 border-accent/40 pl-6 py-1">
+                                <WordReveal text={message.subContent} delay={0.4} />
+                            </div>
                         </div>
                     )}
                 </div>
@@ -199,9 +544,9 @@ function MessageBubble({ message }: { message: Message }) {
         return (
              <div className="mb-6 flex gap-4 pr-12">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm opacity-0" />
-                <div className="max-w-2xl bg-[#F9F9F9] border border-[#EFEFEF] rounded-2xl px-8 py-7 shadow-sm">
-                    <p className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase mb-4 font-sans font-semibold">Bodha • Understanding</p>
-                    <p className="text-zinc-700 font-sans text-base leading-relaxed tracking-wide">
+                <div className="max-w-2xl bg-muted border border-border rounded-2xl px-8 py-7 shadow-sm">
+                    <p className="text-muted-foreground text-[10px] tracking-[0.2em] uppercase mb-4 font-sans font-semibold">Bodha • Understanding</p>
+                    <p className="text-foreground/80 font-sans text-base leading-relaxed tracking-wide">
                         {message.content}
                     </p>
                 </div>
@@ -216,7 +561,7 @@ function MessageBubble({ message }: { message: Message }) {
                 <div className="max-w-2xl bg-accent/[0.05] border border-accent/20 rounded-2xl px-8 py-7 relative overflow-hidden">
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-accent/10 blur-[30px] rounded-full" />
                     <p className="text-accent/80 text-[10px] tracking-[0.2em] uppercase mb-4 font-sans font-semibold">Chintana • Reflection</p>
-                    <p className="font-serif text-zinc-800 text-xl leading-relaxed italic">
+                    <p className="font-serif text-foreground text-xl leading-relaxed italic">
                         &quot;{message.content}&quot;
                     </p>
                 </div>
@@ -235,7 +580,6 @@ function MessageBubble({ message }: { message: Message }) {
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-    const [sidebarOpen, setSidebarOpen] = useState(true)
     const [userName, setUserName] = useState('Seeker')
     const [messages, setMessages] = useState<Message[]>([])
     const [inputValue, setInputValue] = useState('')
@@ -245,7 +589,42 @@ export default function DashboardPage() {
     const [remaining, setRemaining] = useState(RATE_LIMIT)
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
-    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const [activePanel, setActivePanel] = useState<SidebarPanel>(null)
+    const chatContainerRef = useRef<HTMLDivElement>(null)
+
+    // Restore saved theme on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('tatvam_theme') as AppTheme | null
+        if (saved) applyTheme(saved)
+    }, [])
+
+    const handleTogglePanel = (p: SidebarPanel) => setActivePanel(p)
+
+    const handleInjectShlok = (s: typeof SHLOK_GUIDE[0]) => {
+        const now = Date.now()
+        const newMessages: Message[] = [
+            {
+                id: now.toString(),
+                type: 'system',
+                content: `Wisdom for when you feel: ${s.mood}`,
+                timestamp: new Date(),
+            },
+            {
+                id: (now + 1).toString(),
+                type: 'shlok',
+                content: s.shlok,
+                source: s.source,
+                timestamp: new Date(),
+            },
+            {
+                id: (now + 2).toString(),
+                type: 'meaning',
+                content: s.meaning,
+                timestamp: new Date(),
+            },
+        ]
+        setMessages(prev => [...prev, ...newMessages])
+    }
 
     // Load conversations on mount
     useEffect(() => {
@@ -343,7 +722,9 @@ export default function DashboardPage() {
 
     // Auto-scroll
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+        }
     }, [messages])
 
     const loadDailyReflection = () => {
@@ -443,7 +824,8 @@ export default function DashboardPage() {
     const handleSend = async () => {
         if (!inputValue.trim() || isThinking) return
 
-        // Check rate limit
+        // Skip rate limit check for unlimited mode
+        /*
         const remainingNow = getRemainingMessages()
         if (remainingNow <= 0) {
             const resetTime = getNextResetTime()
@@ -455,6 +837,7 @@ export default function DashboardPage() {
             }])
             return
         }
+        */
 
         const userMessage = inputValue.trim()
         const userMsg: Message = {
@@ -484,9 +867,9 @@ export default function DashboardPage() {
         try {
             // Build history from recent messages
             const history = messages
-                .filter(m => m.type === 'user' || m.type === 'reflection' || m.type === 'meaning' || m.type === 'shlok')
+                .filter(m => m.type === 'user' || m.type === 'reflection' || m.type === 'meaning' || m.type === 'shlok' || m.type === 'chat')
                 .slice(-10)
-                .map(m => ({ type: m.type === 'user' ? 'user' : 'assistant', content: m.content }))
+                .map(m => ({ type: m.type, content: m.content }))
 
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -569,17 +952,34 @@ export default function DashboardPage() {
     if (!isAuthenticated) return null
 
     return (
-        <div className="h-screen bg-[#F7F7F7] flex items-center justify-center p-2 md:p-4 lg:p-6">
-            <div className="bg-white rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border border-[#EFEFEF]">
+        <div className="h-[100dvh] w-full bg-background flex items-center justify-center p-0 md:p-4 lg:p-6 overflow-hidden transition-colors duration-300">
+            <div className="bg-card md:rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border-0 md:border border-border transition-colors duration-300">
                 {/* Sidebar */}
                 <DashboardSidebar
                     userName={userName}
                     onLogout={handleLogout}
                     onNewReflection={handleNewReflection}
+                    activePanel={activePanel}
+                    onTogglePanel={handleTogglePanel}
                 />
 
+                {/* Slide-in Panels */}
+                {activePanel === 'bhajans' && (
+                    <BhajanPanel onClose={() => setActivePanel(null)} />
+                )}
+                {activePanel === 'shlok_guide' && (
+                    <ShlokGuidePanel
+                        onClose={() => setActivePanel(null)}
+                        onInjectShlok={handleInjectShlok}
+                    />
+                )}
+                {activePanel === 'settings' && (
+                    <SettingsPanel onClose={() => setActivePanel(null)} onLogout={handleLogout} />
+                )}
+
                 {/* Main Content */}
-                <main className="flex-1 flex flex-col h-full relative z-10 bg-white">
+                <main className="flex-1 flex flex-col h-full relative z-10 bg-card transition-colors duration-300">
+
                     {/* Top Bar */}
                     <header className="flex items-center justify-between px-8 py-5">
                         <div className="flex items-center gap-3">
@@ -606,82 +1006,28 @@ export default function DashboardPage() {
                         </div>
                     </header>
 
-                    {/* Messages Area / Empty State */}
-                    <div className="flex-1 overflow-y-auto px-6 md:px-12 lg:px-24 py-8">
+                    {/* Messages Area */}
+                    <div 
+                        ref={chatContainerRef}
+                        className="flex-1 overflow-y-auto px-6 md:px-12 lg:px-24 py-8 scroll-smooth"
+                    >
                         <div className="max-w-[800px] mx-auto h-full flex flex-col">
                             {messages.length === 0 ? (
                                 <div className="flex-1 flex flex-col items-center justify-center -mt-20">
-                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 mb-6 flex items-center justify-center shadow-[0_10px_30px_rgba(201,151,110,0.3)]">
-                                        <div className="w-6 h-6 bg-white/40 blur-[2px] rounded-full absolute mix-blend-overlay" />
-                                    </div>
-                                    <h1 className="text-3xl font-sans font-semibold text-zinc-800 mb-2 tracking-tight">
-                                        Hi, {userName} 👋
-                                    </h1>
-                                    <p className="text-zinc-500 font-sans text-base mb-12">
-                                        Seek timeless wisdom, and find your center here.
-                                    </p>
-
-                                    {/* Suggestion Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-8">
-                                        {/* Card 1: Dark Mode / Immersive */}
-                                        <div 
-                                            onClick={() => setInputValue("What is the core message of the Bhagavad Gita regarding duty?")}
-                                            className="bg-[#111111] rounded-3xl p-6 text-white flex flex-col cursor-pointer transition-transform hover:scale-[1.02]"
-                                        >
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-accent to-yellow-500 flex items-center justify-center text-[10px] font-bold">G</div>
-                                                <span className="text-xs font-semibold bg-blue-600 px-2 py-1 rounded-full text-white">Spiritual Guide</span>
-                                            </div>
-                                            <p className="text-sm text-zinc-300 flex-1 leading-relaxed">
-                                                Explore the depths of your inner self and understand the nature of Dharma through ancient scriptures.
-                                            </p>
+                                    <div className="flex flex-col items-center text-center max-w-sm">
+                                        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mb-8 relative">
+                                            <div className="absolute inset-0 rounded-full border border-accent/20 animate-ping-slow" />
+                                            <div className="absolute inset-0 rounded-full border border-accent/30 animate-pulse-slow" />
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent">
+                                                <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-11.314l.707.707m11.314 11.314l.707.707" />
+                                            </svg>
                                         </div>
-
-                                        {/* Card 2: Tasks */}
-                                        <div className="bg-white border text-left border-zinc-200 rounded-3xl p-6 flex flex-col relative">
-                                            <p className="text-xs text-zinc-400 font-medium mb-3 absolute bottom-3 left-6">Vedic Tasks</p>
-                                            <a href="#" className="text-[10px] text-blue-500 absolute bottom-3 right-6 font-medium hover:underline">View All</a>
-                                            <div className="space-y-4 mb-8">
-                                                <button onClick={() => setInputValue("Read a daily reflection on patience.")} className="flex items-start gap-3 w-full text-left group">
-                                                    <svg className="w-4 h-4 text-zinc-400 mt-0.5 group-hover:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                                                    <span className="text-sm text-zinc-600 group-hover:text-zinc-900 transition-colors">Daily reflection on Patience</span>
-                                                </button>
-                                                <button onClick={() => setInputValue("How did Arjuna find focus?")} className="flex items-start gap-3 w-full text-left group">
-                                                    <svg className="w-4 h-4 text-zinc-400 mt-0.5 group-hover:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                                    <span className="text-sm text-zinc-600 group-hover:text-zinc-900 transition-colors">How did Arjuna find focus?</span>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Card 3: Suggested prompt */}
-                                        <div 
-                                            onClick={() => setInputValue("I'm feeling very overwhelmed by the workload today. How can I regain my balance?")}
-                                            className="bg-white border border-zinc-200 rounded-3xl p-6 flex flex-col relative cursor-pointer hover:border-zinc-300 transition-colors"
-                                        >
-                                            <p className="text-zinc-800 text-sm font-medium leading-relaxed">
-                                                I&apos;m feeling very overwhelmed by the workload today. How can I regain my balance?
-                                            </p>
-                                            <div className="absolute top-4 right-4 text-zinc-400">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                                            </div>
-                                            <p className="text-[10px] text-zinc-400 font-medium mt-auto absolute bottom-4">Suggested thought</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Pills */}
-                                    <div className="flex flex-wrap items-center justify-center gap-3">
-                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
-                                            <svg width="14" height="14" className="text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                            Connect Calendar
-                                        </button>
-                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
-                                            <svg width="14" height="14" className="text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-                                            Demo Mode
-                                        </button>
-                                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-full text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors">
-                                            <svg width="14" height="14" className="text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                                            Browse Stories
-                                        </button>
+                                        <h2 className="text-2xl font-serif font-medium mb-3 tracking-tight">
+                                            <WordReveal text="Welcome to Tatvam, Seeker." />
+                                        </h2>
+                                        <p className="text-zinc-500 text-sm leading-relaxed font-medium">
+                                            <WordReveal text="In the quiet of your mind, let the ancient wisdom find its way to you." delay={0.8} />
+                                        </p>
                                     </div>
                                 </div>
                             ) : (
@@ -705,7 +1051,6 @@ export default function DashboardPage() {
                                             </div>
                                         </div>
                                     )}
-                                    <div ref={messagesEndRef} />
                                 </>
                             )}
                         </div>
@@ -724,7 +1069,7 @@ export default function DashboardPage() {
                                         onChange={(e) => setInputValue(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                                         placeholder="Ask me anything..."
-                                        disabled={isThinking || remaining <= 0}
+                                        disabled={isThinking}
                                         className="flex-1 bg-transparent text-zinc-800 placeholder-zinc-400 focus:outline-none text-base font-sans disabled:opacity-50 min-h-[44px]"
                                     />
                                 </div>
@@ -748,7 +1093,7 @@ export default function DashboardPage() {
                                         </button>
                                         <button
                                             onClick={handleSend}
-                                            disabled={!inputValue.trim() || isThinking || remaining <= 0}
+                                            disabled={!inputValue.trim() || isThinking}
                                             className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#111111] hover:bg-black/80 text-white text-xs font-semibold disabled:opacity-20 transition-all shadow-md ml-1"
                                         >
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -765,7 +1110,7 @@ export default function DashboardPage() {
                                 <p className={`text-[10px] font-sans font-medium ${remaining <= 0 ? 'text-red-500' : 'text-zinc-400'}`}>
                                     {remaining <= 0
                                         ? `Reflections exhausted. Resets in ${getNextResetTime()}`
-                                        : `Tatvam may display inaccurate information. Your Reflections: ${remaining} of ${RATE_LIMIT} remaining.`}
+                                        : `Tatvam may display inaccurate information. Unlimited Reflections.`}
                                 </p>
                             </div>
                         </div>
