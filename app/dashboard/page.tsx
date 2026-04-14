@@ -7,10 +7,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { RATE_LIMIT, getRemainingMessages, getNextResetTime, recordMessageTimestamp } from '@/lib/utils'
 
-const ThreeAvatar = dynamic(
-  () => import('@/components/ui/three-avatar').then(m => ({ default: m.ThreeAvatar })),
-  { ssr: false }
-)
+import { PixelMonk } from '@/components/ui/pixel-monk'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -87,12 +84,12 @@ const DAILY_SHLOKS = [
 type SidebarPanel = 'bhajans' | 'shlok_guide' | 'settings' | null
 
 const BHAJANS = [
-    { title: 'Om Namah Shivaya', artist: 'Traditional', src: '' },
-    { title: 'Hare Krishna Mahamantra', artist: 'ISKCON', src: '' },
-    { title: 'Gayatri Mantra', artist: 'Traditional', src: '' },
-    { title: 'Hanuman Chalisa', artist: 'Tulsidas', src: '' },
-    { title: 'Raghupati Raghava Raja Ram', artist: 'Traditional', src: '' },
-    { title: 'Achyutam Keshavam', artist: 'Traditional', src: '' },
+    { title: 'Om Namah Shivaya', artist: 'Suresh Wadkar', src: 'https://archive.org/download/OmNamahShivayaBySureshWadkar/Om%20Namah%20Shivaya%20by%20Suresh%20Wadkar.mp3' },
+    { title: 'Hare Krishna Mahamantra', artist: 'Classic Chant', src: 'https://archive.org/download/HareKrishnaMahaMantra/Hare%20Krishna%20Maha%20Mantra.mp3' },
+    { title: 'Gayatri Mantra', artist: 'Traditional', src: 'https://archive.org/download/GayatriMantra_201701/Gayatri%20Mantra.mp3' },
+    { title: 'Hanuman Chalisa', artist: 'Gulshan Kumar', src: 'https://archive.org/download/hanumanchalisa-gulshanhkumar/Hanuman%20Chalisa%20-%20Gulshan%20Kumar.mp3' },
+    { title: 'Raghupati Raghava', artist: 'Jagjit Singh', src: 'https://archive.org/download/RaghupatiRaghavaRajaRamByJagjitSingh/Raghupati%20Raghava%20Raja%20Ram%20by%20Jagjit%20Singh.mp3' },
+    { title: 'Achyutam Keshavam', artist: 'Traditional', src: 'https://archive.org/download/AchyutamKeshavamKrishnaDamodaram/Achyutam%20Keshavam%20Krishna%20Damodaram.mp3' },
 ]
 
 const SHLOK_GUIDE: { mood: string; emoji: string; shlok: string; source: string; meaning: string }[] = [
@@ -106,9 +103,7 @@ const SHLOK_GUIDE: { mood: string; emoji: string; shlok: string; source: string;
 
 // ─── Bhajan Panel ─────────────────────────────────────────────────────────────
 
-function BhajanPanel({ onClose }: { onClose: () => void }) {
-    const [playing, setPlaying] = React.useState<number | null>(null)
-
+function BhajanPanel({ onClose, playingTrack, onToggleTrack }: { onClose: () => void; playingTrack: number | null; onToggleTrack: (i: number) => void }) {
     return (
         <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
             <div className="flex items-center justify-between px-5 py-5 border-b border-border">
@@ -122,25 +117,27 @@ function BhajanPanel({ onClose }: { onClose: () => void }) {
             </div>
 
             <div className="mx-4 mt-4 px-4 py-3 bg-accent/5 border border-accent/20 rounded-2xl">
-                <p className="text-accent text-xs font-sans font-medium tracking-wide">🎵 Audio coming soon</p>
-                <p className="text-muted-foreground text-[11px] mt-1 font-sans leading-relaxed">We are curating sacred bhajans. They will appear here shortly.</p>
+                <p className="text-accent text-xs font-sans font-medium tracking-wide">🎵 {playingTrack !== null ? 'Playing Now' : 'Select a Track'}</p>
+                <p className="text-muted-foreground text-[11px] mt-1 font-sans leading-relaxed">
+                    {playingTrack !== null ? `Currently listening to ${BHAJANS[playingTrack].title}` : 'Immerse yourself in sacred vibrations.'}
+                </p>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
                 {BHAJANS.map((b, i) => (
                     <button
                         key={i}
-                        onClick={() => setPlaying(playing === i ? null : i)}
+                        onClick={() => onToggleTrack(i)}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left ${
-                            playing === i
+                            playingTrack === i
                                 ? 'border-accent/40 bg-accent/5'
                                 : 'border-border hover:border-accent/20 hover:bg-muted'
                         }`}
                     >
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            playing === i ? 'bg-accent/20' : 'bg-muted'
+                            playingTrack === i ? 'bg-accent/20' : 'bg-muted'
                         }`}>
-                            {playing === i ? (
+                            {playingTrack === i ? (
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-accent">
                                     <rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>
                                 </svg>
@@ -151,13 +148,18 @@ function BhajanPanel({ onClose }: { onClose: () => void }) {
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-sans font-medium truncate ${ playing === i ? 'text-accent' : 'text-foreground' }`}>{b.title}</p>
+                            <p className={`text-sm font-sans font-medium truncate ${ playingTrack === i ? 'text-accent' : 'text-foreground' }`}>{b.title}</p>
                             <p className="text-muted-foreground text-[11px] font-sans">{b.artist}</p>
                         </div>
-                        {playing === i && (
+                        {playingTrack === i && (
                             <div className="flex items-end gap-0.5 h-4">
                                 {[1, 2, 3].map(j => (
-                                    <div key={j} className="w-1 bg-accent rounded-full animate-bounce" style={{ height: `${8 + j * 4}px`, animationDelay: `${j * 0.1}s` }} />
+                                    <motion.div 
+                                        key={j} 
+                                        animate={{ height: [8, 16, 8] }}
+                                        transition={{ duration: 0.6, repeat: Infinity, delay: j * 0.1 }}
+                                        className="w-1 bg-accent rounded-full" 
+                                    />
                                 ))}
                             </div>
                         )}
@@ -232,7 +234,7 @@ function applyTheme(t: AppTheme) {
     localStorage.setItem('tatvam_theme', t)
 }
 
-function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
+function SettingsPanel({ onClose, onLogout, volume, onVolumeChange }: { onClose: () => void; onLogout: () => void; volume: number; onVolumeChange: (v: number) => void }) {
     const router = useRouter()
     const [theme, setTheme] = React.useState<AppTheme>(() => {
         if (typeof window !== 'undefined') {
@@ -288,6 +290,26 @@ function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLogout: (
                                 )}
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                {/* Volume Control */}
+                <div>
+                    <p className="text-[10px] text-muted-foreground font-sans font-semibold uppercase tracking-widest mb-3">Sacred Volume</p>
+                    <div className="px-4 py-4 rounded-2xl border border-border bg-muted/50 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-foreground"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                             <span className="text-xs font-sans font-medium text-foreground">{Math.round(volume * 100)}%</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="1" 
+                            step="0.01" 
+                            value={volume} 
+                            onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                            className="w-full accent-accent h-1.5 bg-border rounded-full appearance-none cursor-pointer"
+                        />
                     </div>
                 </div>
 
@@ -600,6 +622,41 @@ export default function DashboardPage() {
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
     const [activePanel, setActivePanel] = useState<SidebarPanel>(null)
     const chatContainerRef = useRef<HTMLDivElement>(null)
+
+    // Audio Playback
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const [playingTrack, setPlayingTrack] = useState<number | null>(null)
+    const [volume, setVolume] = useState(0.5)
+
+    useEffect(() => {
+        if (!audioRef.current) {
+            audioRef.current = new Audio()
+            audioRef.current.volume = volume
+        }
+    }, [])
+
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.volume = volume
+        }
+        localStorage.setItem('tatvam_volume', volume.toString())
+    }, [volume])
+
+    const handleToggleTrack = (index: number) => {
+        if (playingTrack === index) {
+            audioRef.current?.pause()
+            setPlayingTrack(null)
+            localStorage.removeItem('tatvam_active_bhajan_src')
+        } else {
+            if (audioRef.current) {
+                const src = BHAJANS[index].src
+                audioRef.current.src = src
+                audioRef.current.play().catch(e => console.error("Audio playback error:", e))
+                setPlayingTrack(index)
+                localStorage.setItem('tatvam_active_bhajan_src', src)
+            }
+        }
+    }
 
     // Restore saved theme on mount
     useEffect(() => {
@@ -973,18 +1030,56 @@ export default function DashboardPage() {
                 />
 
                 {/* Slide-in Panels */}
-                {activePanel === 'bhajans' && (
-                    <BhajanPanel onClose={() => setActivePanel(null)} />
-                )}
-                {activePanel === 'shlok_guide' && (
-                    <ShlokGuidePanel
-                        onClose={() => setActivePanel(null)}
-                        onInjectShlok={handleInjectShlok}
-                    />
-                )}
-                {activePanel === 'settings' && (
-                    <SettingsPanel onClose={() => setActivePanel(null)} onLogout={handleLogout} />
-                )}
+                <AnimatePresence mode="wait">
+                    {activePanel === 'bhajans' && (
+                        <motion.div
+                            key="bhajans"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -20, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="h-full border-r border-border"
+                        >
+                            <BhajanPanel 
+                                onClose={() => setActivePanel(null)} 
+                                playingTrack={playingTrack}
+                                onToggleTrack={handleToggleTrack}
+                            />
+                        </motion.div>
+                    )}
+                    {activePanel === 'shlok_guide' && (
+                        <motion.div
+                            key="shlok"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -20, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="h-full border-r border-border"
+                        >
+                            <ShlokGuidePanel
+                                onClose={() => setActivePanel(null)}
+                                onInjectShlok={handleInjectShlok}
+                            />
+                        </motion.div>
+                    )}
+                    {activePanel === 'settings' && (
+                        <motion.div
+                            key="settings"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -20, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="h-full border-r border-border"
+                        >
+                            <SettingsPanel
+                                onClose={() => setActivePanel(null)}
+                                onLogout={handleLogout}
+                                volume={volume}
+                                onVolumeChange={setVolume}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col h-full relative z-10 bg-card transition-colors duration-300">
@@ -1068,26 +1163,11 @@ export default function DashboardPage() {
                     {/* Input Bar - The Capsule */}
                     <div className="px-6 md:px-12 lg:px-24 pb-8 pt-4">
                         <div className="max-w-[800px] mx-auto relative group">
-                            {/* 3D Walking Avatar - The Patroller */}
-                            <motion.div
-                                animate={{ 
-                                    x: ["0%", "85%", "0%"],
-                                }}
-                                transition={{ 
-                                    x: { duration: 28, repeat: Infinity, ease: "linear" },
-                                }}
-                                className="absolute -top-20 left-0 pointer-events-none z-10 w-20 h-20"
-                            >
-                                <ThreeAvatar
-                                    className="w-full h-full"
-                                    isHovered={false}
-                                />
-                            </motion.div>
 
                             <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-zinc-300 transition-colors relative z-50">
-                                <ThreeAvatar
-                                    className="w-14 h-14 shrink-0 cursor-pointer"
-                                    isHovered={false}
+                                <PixelMonk
+                                    size="md"
+                                    className="shrink-0"
                                     onClick={() => router.push('/portal')}
                                 />
                                 <input

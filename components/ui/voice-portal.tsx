@@ -6,35 +6,47 @@ import MythicalPortal from '@/components/MythicalPortal'
 import { VoiceVisualizer } from './voice-visualizer'
 import { ShootingStars } from '@/components/ui/shooting-stars'
 import { StarsBackground } from '@/components/ui/stars-background'
-import dynamic from 'next/dynamic'
-
-const ThreeAvatar = dynamic(
-  () => import('./three-avatar').then(m => ({ default: m.ThreeAvatar })),
-  { ssr: false }
-)
+import { PixelMonk } from './pixel-monk'
 
 interface VoicePortalProps {
   isOpen: boolean
   onClose: () => void
   userName: string
+  volume: number
+  activeBhajanSrc?: string | null
 }
 
-export function VoicePortal({ isOpen, onClose, userName }: VoicePortalProps) {
+export function VoicePortal({ isOpen, onClose, userName, volume, activeBhajanSrc }: VoicePortalProps) {
   const [isListening, setIsListening] = useState(false)
   const [status, setStatus] = useState<'connecting' | 'listening' | 'speaking'>('connecting')
+  const ambientAudioRef = React.useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     if (isOpen) {
+      // Initialize ambient audio (Om Chant)
+      if (!ambientAudioRef.current) {
+        ambientAudioRef.current = new Audio('https://archive.org/download/OmChant/Om%20Chant.mp3')
+        ambientAudioRef.current.loop = true
+      }
+      
+      ambientAudioRef.current.volume = volume * 0.4 // Slightly quieter for focus
+      
+      // Auto-play the chant if no bhajan is active in the background
+      if (!activeBhajanSrc) {
+        ambientAudioRef.current.play().catch(e => console.error("Portal audio error:", e))
+      }
+
       const timer = setTimeout(() => {
         setStatus('listening')
         setIsListening(true)
       }, 2000)
-      return () => clearTimeout(timer)
-    } else {
-      setStatus('connecting')
-      setIsListening(false)
+      
+      return () => {
+        clearTimeout(timer)
+        ambientAudioRef.current?.pause()
+      }
     }
-  }, [isOpen])
+  }, [isOpen, activeBhajanSrc, volume])
 
   return (
     <AnimatePresence>
@@ -58,8 +70,8 @@ export function VoicePortal({ isOpen, onClose, userName }: VoicePortalProps) {
                 <VoiceVisualizer />
               </div>
               
-              <div className="relative z-10 w-[70%] h-[70%] transform scale-150">
-                <ThreeAvatar className="w-full h-full" isHovered={false} isEthereal={true} />
+              <div className="relative z-10 scale-[2.5] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                <PixelMonk />
               </div>
             </div>
 
