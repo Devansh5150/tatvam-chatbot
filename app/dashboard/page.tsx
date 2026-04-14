@@ -1,9 +1,16 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
+import dynamic from 'next/dynamic'
 import { RATE_LIMIT, getRemainingMessages, getNextResetTime, recordMessageTimestamp } from '@/lib/utils'
+
+const ThreeAvatar = dynamic(
+  () => import('@/components/ui/three-avatar').then(m => ({ default: m.ThreeAvatar })),
+  { ssr: false }
+)
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -226,6 +233,7 @@ function applyTheme(t: AppTheme) {
 }
 
 function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
+    const router = useRouter()
     const [theme, setTheme] = React.useState<AppTheme>(() => {
         if (typeof window !== 'undefined') {
             return (localStorage.getItem('tatvam_theme') as AppTheme) || 'light'
@@ -580,6 +588,7 @@ function MessageBubble({ message }: { message: Message }) {
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+    const router = useRouter()
     const [userName, setUserName] = useState('Seeker')
     const [messages, setMessages] = useState<Message[]>([])
     const [inputValue, setInputValue] = useState('')
@@ -1058,51 +1067,48 @@ export default function DashboardPage() {
 
                     {/* Input Bar - The Capsule */}
                     <div className="px-6 md:px-12 lg:px-24 pb-8 pt-4">
-                        <div className="max-w-[800px] mx-auto">
-                            <div className="flex flex-col bg-white border border-zinc-200 rounded-3xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-zinc-300 transition-colors">
-                                {/* Input Box Row */}
-                                <div className="flex items-center px-4 pb-2">
-                                    <svg width="16" height="16" className="text-accent mr-3 mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                                    <input
-                                        type="text"
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                        placeholder="Ask me anything..."
-                                        disabled={isThinking}
-                                        className="flex-1 bg-transparent text-zinc-800 placeholder-zinc-400 focus:outline-none text-base font-sans disabled:opacity-50 min-h-[44px]"
-                                    />
-                                </div>
-                                
-                                {/* Bottom Action Row */}
-                                <div className="flex items-center justify-between pt-2">
-                                    <div className="flex items-center gap-2">
-                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 text-xs text-zinc-600 font-medium hover:bg-zinc-50 transition-colors">
-                                            Select Source
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                                        </button>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-zinc-600 font-medium hover:bg-zinc-50 border border-transparent hover:border-zinc-200 transition-colors">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                                            Attach
-                                        </button>
-                                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-zinc-600 font-medium hover:bg-zinc-50 border border-transparent hover:border-zinc-200 transition-colors">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                                            Voice
-                                        </button>
-                                        <button
-                                            onClick={handleSend}
-                                            disabled={!inputValue.trim() || isThinking}
-                                            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#111111] hover:bg-black/80 text-white text-xs font-semibold disabled:opacity-20 transition-all shadow-md ml-1"
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <path d="M5 12h14M12 5l7 7-7 7" />
-                                            </svg>
-                                            Send
-                                        </button>
-                                    </div>
-                                </div>
+                        <div className="max-w-[800px] mx-auto relative group">
+                            {/* 3D Walking Avatar - The Patroller */}
+                            <motion.div
+                                animate={{ 
+                                    x: ["0%", "85%", "0%"],
+                                }}
+                                transition={{ 
+                                    x: { duration: 28, repeat: Infinity, ease: "linear" },
+                                }}
+                                className="absolute -top-20 left-0 pointer-events-none z-10 w-20 h-20"
+                            >
+                                <ThreeAvatar
+                                    className="w-full h-full"
+                                    isHovered={false}
+                                />
+                            </motion.div>
+
+                            <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-zinc-300 transition-colors relative z-50">
+                                <ThreeAvatar
+                                    className="w-14 h-14 shrink-0 cursor-pointer"
+                                    isHovered={false}
+                                    onClick={() => router.push('/portal')}
+                                />
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                    placeholder="Ask me anything..."
+                                    disabled={isThinking}
+                                    className="flex-1 bg-transparent text-zinc-800 placeholder-zinc-400 focus:outline-none text-base font-sans disabled:opacity-50 min-h-[44px]"
+                                />
+                                <button
+                                    onClick={handleSend}
+                                    disabled={!inputValue.trim() || isThinking}
+                                    className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#111111] hover:bg-black/80 text-white text-xs font-semibold disabled:opacity-20 transition-all shadow-md shrink-0"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M5 12h14M12 5l7 7-7 7" />
+                                    </svg>
+                                    Send
+                                </button>
                             </div>
 
                             {/* Footer text */}

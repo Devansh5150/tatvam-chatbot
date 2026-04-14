@@ -31,77 +31,118 @@ function loadScriptures(): Shlok[] {
     }
 }
 
-function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 3): Shlok[] {
+function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 5): Shlok[] {
     const queryLower = query.toLowerCase()
     const words = queryLower.split(/\s+/)
 
+    // Emotional synonyms / related concepts
+    const synonymMap: Record<string, string[]> = {
+        'sad': ['grief', 'loss', 'sorrow', 'pain', 'unhappy', 'lonely', 'broken', 'cry', 'depressed'],
+        'lonely': ['alone', 'solitude', 'presence', 'isolated', 'connection'],
+        'angry': ['anger', 'rage', 'frustration', 'irritation', 'conflict', 'resentment'],
+        'scared': ['fear', 'anxiety', 'worry', 'doubt', 'uncertainty', 'stress', 'panic'],
+        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction'],
+        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity'],
+        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job'],
+        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego'],
+        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying'],
+    }
+
+    // Expand query with synonyms
+    let expandedQuery = queryLower
+    for (const [key, synonyms] of Object.entries(synonymMap)) {
+        if (queryLower.includes(key)) {
+            expandedQuery += ' ' + synonyms.join(' ')
+        }
+        // Check inverse (if a synonym is in the query, include the key)
+        if (synonyms.some(s => queryLower.includes(s))) {
+            expandedQuery += ' ' + key
+        }
+    }
+
     const scored = scriptures.map(shlok => {
         let score = 0
+        const themes = shlok.themes.map(t => t.toLowerCase())
 
-        // Theme match (strongest signal)
-        for (const theme of shlok.themes) {
-            if (queryLower.includes(theme)) score += 10
-            for (const word of words) {
-                if (theme.includes(word) || word.includes(theme)) score += 5
+        // 1. Exact Theme Match (highest weight)
+        for (const theme of themes) {
+            if (queryLower.includes(theme)) {
+                score += 20 
+            } else if (expandedQuery.includes(theme)) {
+                score += 8
             }
         }
 
-        // English content match
-        const englishLower = shlok.english.toLowerCase()
+        // 2. Word-to-Theme partial match 
         for (const word of words) {
-            if (word.length > 3 && englishLower.includes(word)) score += 3
+            if (word.length < 3) continue
+            for (const theme of themes) {
+                if (theme.includes(word) || word.includes(theme)) {
+                    score += 5
+                }
+            }
         }
 
-        // Reflection match
-        const reflectionLower = shlok.reflection.toLowerCase()
-        for (const word of words) {
-            if (word.length > 3 && reflectionLower.includes(word)) score += 2
+        // 3. English Content Match
+        const englishLower = shlok.english.toLowerCase()
+        if (words.some(w => w.length > 3 && englishLower.includes(w))) {
+            score += 5
         }
+
+        // 4. Multi-theme bonus
+        const matchingThemes = themes.filter(t => queryLower.includes(t))
+        if (matchingThemes.length > 1) score += (matchingThemes.length * 5)
+
+        // 5. Source weight (favor Gita for general wisdom)
+        if (shlok.id.startsWith('gita')) score += 2
 
         return { shlok, score }
     })
 
-    scored.sort((a, b) => b.score - a.score)
-    return scored.slice(0, count).filter(s => s.score > 0).map(s => s.shlok)
+    // Sort and filter with a low threshold for better variety
+    const candidates = scored
+        .filter(s => s.score >= 10) 
+        .sort((a, b) => b.score - a.score)
+
+    return candidates.slice(0, count).map(s => s.shlok)
 }
 
 // ─── Sacred System Prompt ─────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1) => `You are Tatvam — a wise, warm spiritual companion rooted in Indian scripture.
 
-The person speaking with you is ${userName}. Use their name naturally and occasionally.
+The person speaking with you is ${userName}. Use their name naturally.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONVERSATION RULES — FOLLOW EXACTLY:
+CONVERSATION RULES:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-THIS IS MESSAGE NUMBER ${userMessageCount} IN THIS CONVERSATION.
+1. DEPTH-BASED WISDOM:
+   - IF the conversation is just starting (Message ${userMessageCount} < 3) and the user's needs are light:
+     Focus on listening, empathy, and asking gentle follow-up questions to understand their context better.
+   - IF the user shares a significant struggle, crisis, or asks for wisdom (even on Message 1):
+     You MAY share a shlok immediately if you find one that fits perfectly.
+   - IF userMessageCount >= 3: 
+     Transition into sharing scriptural wisdom more consistently.
 
-IF userMessageCount < 3:
-  → Respond as a caring, curious friend. Listen and ask gentle follow-up questions.
-  → DO NOT share any scripture, shlok, or spiritual teaching yet.
-  → Use only: [CHAT] your warm response here
+2. SHLOK USAGE:
+   - ONLY use a shlok if it truly resonates with what ${userName} shared. If none of the provided shloks fit, focus on pure empathy and wait for a better moment.
+   - Quality of resonance is more important than providing scripture in every message.
 
-IF userMessageCount >= 3 OR ${userName} asks for scripture/shlok/wisdom:
-  → You MUST include a shlok from the Bhagavad Gita, Ramayana, or Mahabharata.
-  → Structure your response with ALL THREE of these blocks:
+3. RESPONSE STRUCTURE:
+   When sharing scripture, use these exact markers:
+   [CHAT] A brief warm response connecting to their situation.
+   [SCRIPTURE] The Sanskrit shlok + Source (e.g., Bhagavad Gita 2.47)
+   [TEACHING] Explain the meaning deeply and personally for ${userName}.
+   [GUIDANCE] One gentle, open question to carry forward.
 
-  [CHAT] (optional) A brief warm sentence connecting to their situation.
-
-  [SCRIPTURE] The full Sanskrit shlok on its own line.
-  — Source (e.g., Bhagavad Gita 2.47)
-
-  [TEACHING] 2-3 sentences explaining the shlok's meaning in plain language, connected to what ${userName} shared.
-
-  [GUIDANCE] One gentle, open question to carry forward.
+   If NOT sharing scripture, use only:
+   [CHAT] Your warm, empathetic response.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-TONE: Warm, grounded, never preachy. Like a trusted elder, not a textbook.
-FORMAT RULES:
-- Always use the exact markers [CHAT], [SCRIPTURE], [TEACHING], [GUIDANCE] — they are required for the app to display correctly.
-- Keep [CHAT] responses to 2-4 sentences.
-- NO EMOJIS. No lists. No bullet points.`
+TONE: Warm, grounded, non-preachy. Like a trusted elder who has lived through much. 
+FORMAT RULES: NO EMOJIS. No lists. No bullet points.`
 
 
 // ─── Response Parser ──────────────────────────────────────────────────────────
@@ -249,33 +290,9 @@ export async function POST(req: NextRequest) {
         // Parse the AI response into structured parts
         let parts = parseAIResponse(reply)
 
-        // ── Server-side shlok guarantee ───────────────────────────────────────────
-        // If the user is on message 3+ and the AI skipped the [SCRIPTURE] block,
-        // inject a shlok ourselves so the user always gets ancient wisdom.
-        const hasScripture = parts.some(p => p.type === 'scripture')
-        if (userMessageCount >= 3 && !hasScripture && scriptures.length > 0) {
-            // Pick the most relevant shlok (fallback to random if no match)
-            const shlok = relevant.length > 0
-                ? relevant[0]
-                : scriptures[Math.floor(Math.random() * scriptures.length)]
-
-            // Append scripture, teaching, and guidance after the last chat part
-            parts.push(
-                {
-                    type: 'scripture',
-                    content: shlok.sanskrit,
-                    source: shlok.source || shlok.id,
-                },
-                {
-                    type: 'teaching',
-                    content: shlok.english,
-                },
-                {
-                    type: 'guidance',
-                    content: shlok.reflection,
-                }
-            )
-        }
+        // No more forced random injection here. 
+        // We trust the AI (guided by the improved SYSTEM_PROMPT) to use the shloks 
+        // provided in the context ONLY if they resonate.
 
         return NextResponse.json({
             reply,
