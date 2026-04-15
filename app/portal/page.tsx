@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { ShootingStars } from '@/components/ui/shooting-stars'
 import { StarsBackground } from '@/components/ui/stars-background'
 import { VoiceVisualizer } from '@/components/ui/voice-visualizer'
-import { PixelMonk } from '@/components/ui/pixel-monk'
+
 
 
 export default function PortalPage() {
@@ -175,15 +175,7 @@ export default function PortalPage() {
               />
             ))}
 
-            {/* Indian Monk - The Physical Presence */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1.1 }}
-              transition={{ delay: 1, duration: 1.5 }}
-              className="absolute -bottom-24 z-30 drop-shadow-[0_0_20px_rgba(251,191,36,0.3)] filter contrast-[1.1] brightness-[0.9]"
-            >
-              <PixelMonk size="xl" />
-            </motion.div>
+
           </motion.div>
 
         </div>

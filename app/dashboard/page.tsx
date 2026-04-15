@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import dynamic from 'next/dynamic'
 import { RATE_LIMIT, getRemainingMessages, getNextResetTime, recordMessageTimestamp } from '@/lib/utils'
 
-import { PixelMonk } from '@/components/ui/pixel-monk'
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1165,11 +1165,7 @@ export default function DashboardPage() {
                         <div className="max-w-[800px] mx-auto relative group">
 
                             <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-zinc-300 transition-colors relative z-50">
-                                <PixelMonk
-                                    size="md"
-                                    className="shrink-0"
-                                    onClick={() => router.push('/portal')}
-                                />
+
                                 <input
                                     type="text"
                                     value={inputValue}

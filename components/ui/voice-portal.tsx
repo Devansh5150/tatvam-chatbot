@@ -6,7 +6,7 @@ import MythicalPortal from '@/components/MythicalPortal'
 import { VoiceVisualizer } from './voice-visualizer'
 import { ShootingStars } from '@/components/ui/shooting-stars'
 import { StarsBackground } from '@/components/ui/stars-background'
-import { PixelMonk } from './pixel-monk'
+
 
 interface VoicePortalProps {
   isOpen: boolean
@@ -70,9 +70,7 @@ export function VoicePortal({ isOpen, onClose, userName, volume, activeBhajanSrc
                 <VoiceVisualizer />
               </div>
               
-              <div className="relative z-10 scale-[2.5] drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                <PixelMonk />
-              </div>
+
             </div>
 
             {/* Bottom Task Bar */}
