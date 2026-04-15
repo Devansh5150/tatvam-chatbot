@@ -6,18 +6,31 @@ import { motion, AnimatePresence } from 'motion/react'
 import { ShootingStars } from '@/components/ui/shooting-stars'
 import { StarsBackground } from '@/components/ui/stars-background'
 import { VoiceVisualizer } from '@/components/ui/voice-visualizer'
+import { useVoiceInteraction } from '@/hooks/use-voice-interaction'
+
 
 
 
 export default function PortalPage() {
   const router = useRouter()
-  const [isListening, setIsListening] = useState(true)
+  const [status, setStatus] = useState<'connecting' | 'listening' | 'thinking' | 'speaking' | 'idle'>('connecting')
   const [intention, setIntention] = useState('')
   const [isFocusing, setIsFocusing] = useState(false)
   const [timer, setTimer] = useState(0)
   const [volume, setVolume] = useState(0.5)
   const [activeTrack, setActiveTrack] = useState<string | null>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+
+  const { 
+    isListening, 
+    isSpeaking, 
+    transcript, 
+    error: voiceError,
+    startListening, 
+    stopListening, 
+    speak, 
+    cancelSpeech 
+  } = useVoiceInteraction()
 
   // Sync state from Dashboard via localStorage
   useEffect(() => {
@@ -26,6 +39,55 @@ export default function PortalPage() {
     if (savedVolume) setVolume(parseFloat(savedVolume))
     if (savedTrack) setActiveTrack(savedTrack)
   }, [])
+
+  // Auto-start voice loop on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        setStatus('listening')
+        startListening()
+    }, 2000)
+    return () => {
+        clearTimeout(timer)
+        cancelSpeech()
+        stopListening()
+    }
+  }, [startListening, stopListening, cancelSpeech])
+
+  // Process Transcription -> Chat API -> TTS
+  useEffect(() => {
+    if (transcript && !isListening && !isSpeaking) {
+      handleConversation(transcript)
+    }
+  }, [transcript, isListening, isSpeaking])
+
+  const handleConversation = async (text: string) => {
+    setStatus('thinking')
+    
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: text, 
+          history: [], 
+          userName: 'Traveler' // Default or fetch from session
+        }),
+      })
+
+      const data = await response.json()
+      if (data.reply) {
+        setStatus('speaking')
+        const ttsText = data.reply.replace(/\[.*?\]/g, '').trim()
+        await speak(ttsText)
+        
+        setStatus('listening')
+        startListening()
+      }
+    } catch (e) {
+      console.error('Conversation Error:', e)
+      setStatus('idle')
+    }
+  }
 
   // Audio Logic
   useEffect(() => {
@@ -39,17 +101,15 @@ export default function PortalPage() {
     audioRef.current.src = trackToPlay
     audioRef.current.volume = volume
 
-    // Auto-play attempt (interaction required by browser)
-    const playAudio = () => {
-        audioRef.current?.play().catch(e => console.log("Auto-play blocked, waiting for interaction"))
+    // Play on interaction or focus
+    if (isFocusing) {
+        audioRef.current?.play().catch(() => {})
     }
-    
-    playAudio()
 
     return () => {
         audioRef.current?.pause()
     }
-  }, [activeTrack, volume])
+  }, [activeTrack, volume, isFocusing])
 
   // Focus Timer Logic
   useEffect(() => {
@@ -96,6 +156,11 @@ export default function PortalPage() {
              }}
              className="relative flex items-center justify-center"
           >
+            {/* Voice Visualizer - Reactions to speech and listening */}
+            <div className="absolute inset-0 z-0 opacity-30 scale-[2]">
+                <VoiceVisualizer isSpeaking={isSpeaking} isListening={isListening} />
+            </div>
+
             {/* Radiant Shroud - The wide-reaching energy field */}
             <motion.div
               animate={{ 
@@ -187,13 +252,28 @@ export default function PortalPage() {
               className="px-6 py-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/10 flex items-center gap-6 shadow-2xl z-50"
             >
               <button
-                onClick={() => setIsListening(!isListening)}
+                onClick={() => {
+                    if (isListening || status === 'listening') {
+                        stopListening()
+                        setStatus('idle')
+                    } else {
+                        startListening()
+                        setStatus('listening')
+                    }
+                }}
                 className={`flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all font-sans text-sm font-medium ${
                   isListening ? 'bg-accent/20 text-accent border border-accent/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'
                 }`}
               >
                 <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-accent animate-pulse' : 'bg-red-500'}`} />
-                {isListening ? 'Tatvam Listening' : 'Muted'}
+                <div className="flex flex-col items-start leading-none">
+                  <span className="text-xs">{isListening ? `Listening...` : 'Tap to Speak'}</span>
+                  {voiceError && (
+                    <span className="text-[10px] text-red-500/80 mt-0.5">
+                      {voiceError === 'not-allowed' ? 'Mic Access Blocked' : 'Check Mic'}
+                    </span>
+                  )}
+                </div>
               </button>
 
               <div className="w-px h-6 bg-white/10" />
