@@ -82,15 +82,21 @@ function SpeakingWaveform() {
 export default function PortalPage() {
   const router = useRouter()
 
-  type Lang = 'en-IN' | 'hi-IN' | 'hinglish'
+  type Lang = 'en-IN' | 'hi-IN' | 'hinglish' | 'sa' | 'pa-IN' | 'gu-IN' | 'ta-IN' | 'mr-IN' | 'bn-IN'
   const LANGS: { id: Lang; label: string; stt: string }[] = [
-    { id: 'en-IN',    label: 'EN',       stt: 'en-IN' },
-    { id: 'hi-IN',    label: 'हि',       stt: 'hi-IN' },
-    { id: 'hinglish', label: 'HIN',      stt: 'en-IN' },
+    { id: 'en-IN',   label: 'EN',  stt: 'en-IN' },
+    { id: 'hi-IN',   label: 'हि',  stt: 'hi-IN' },
+    { id: 'hinglish',label: 'HIN', stt: 'en-IN' },
+    { id: 'sa',      label: 'संस्कृ', stt: 'hi-IN' }, // no STT for Sanskrit — fall back to Hindi
+    { id: 'pa-IN',   label: 'ਪੰਜਾ', stt: 'pa-IN' },
+    { id: 'gu-IN',   label: 'ગુજ',  stt: 'gu-IN' },
+    { id: 'ta-IN',   label: 'தமிழ்', stt: 'ta-IN' },
+    { id: 'mr-IN',   label: 'मराठी', stt: 'mr-IN' },
+    { id: 'bn-IN',   label: 'বাংলা', stt: 'bn-IN' },
   ]
 
   const [status, setStatus]         = useState<PortalState>('connecting')
-  const [lang, setLang]             = useState<Lang>('en-IN')
+  const [lang, setLang]             = useState<Lang>('en-IN' as Lang)
   const [userText, setUserText]     = useState('')
   const [sentences, setSentences]   = useState<string[]>([])
   const [currentIdx, setCurrentIdx] = useState(-1)
@@ -99,7 +105,7 @@ export default function PortalPage() {
   const [replayReady, setReplayReady] = useState(false)
   const [apiError, setApiError]     = useState<string | null>(null)
 
-  const langRef = useRef<Lang>('en-IN')
+  const langRef = useRef<Lang>('en-IN' as Lang)
   useEffect(() => { langRef.current = lang }, [lang])
 
   const getSttLang = () => LANGS.find(l => l.id === langRef.current)?.stt ?? 'en-IN'
@@ -188,7 +194,10 @@ export default function PortalPage() {
         body: JSON.stringify({ text }),
       })
       if (!res.ok) return null
-      return URL.createObjectURL(await res.blob())
+      // Force audio/mpeg type — blob() may strip MIME when the response was a buffer
+      const buf = await res.arrayBuffer()
+      if (!buf.byteLength) return null
+      return URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }))
     } catch { return null }
   }
 
@@ -288,8 +297,10 @@ export default function PortalPage() {
       const hindiText: string   = data.reply_hindi || ''
       if (!englishText && !hindiText) throw new Error('Empty reply from AI')
 
-      // For Hindi mode, speak the Hindi reply primarily
-      const primaryText = langRef.current === 'hi-IN' && hindiText ? hindiText : englishText
+      // For regional languages (all non-English), prefer the localised [HINDI_REPLY] block
+      // which the AI was instructed to write in that language
+      const useLocalised = langRef.current !== 'en-IN' && langRef.current !== 'hinglish' && !!hindiText
+      const primaryText = useLocalised ? hindiText : englishText
       const sents = splitSentences(primaryText)
       sentencesRef.current = sents
       // Initial rough timing (will be overridden by onloadedmetadata)
@@ -300,7 +311,8 @@ export default function PortalPage() {
 
       const [engUrl, hinUrl] = await Promise.all([
         fetchAudio(primaryText),
-        langRef.current !== 'hi-IN' && hindiText ? fetchAudio(hindiText) : Promise.resolve(null),
+        // Secondary audio: the English block when localised, for the replay button
+        useLocalised ? fetchAudio(englishText) : Promise.resolve(null),
       ])
 
       prevEngUrl.current = engUrl
@@ -403,6 +415,36 @@ export default function PortalPage() {
 
           <div className="w-full h-[370px] relative">
             <MonkAvatar state={status} onClick={handleOrbClick} />
+          </div>
+
+          {/* ── Language selector ── */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <p className="text-white/20 text-[9px] uppercase tracking-[0.2em]">Speak in</p>
+            <div
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm overflow-x-auto w-full max-w-sm justify-center flex-wrap"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {LANGS.map(l => (
+                <motion.button
+                  key={l.id}
+                  onClick={() => {
+                    setLang(l.id)
+                    if (status === 'listening') {
+                      stopListening()
+                      setTimeout(() => startListening(l.stt), 80)
+                    }
+                  }}
+                  whileTap={{ scale: 0.92 }}
+                  className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${
+                    lang === l.id
+                      ? 'bg-amber-500/20 text-amber-200 border-amber-400/40 shadow-[0_0_8px_rgba(251,191,36,0.2)]'
+                      : 'bg-transparent text-white/30 border-white/[0.08] hover:text-white/60 hover:border-white/20'
+                  }`}
+                >
+                  {l.label}
+                </motion.button>
+              ))}
+            </div>
           </div>
 
           {/* CSS waveform during speaking */}
@@ -569,8 +611,11 @@ export default function PortalPage() {
 
           <div className="w-px h-5 bg-white/10" />
 
-          {/* Language toggle */}
-          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/5 border border-white/10">
+          {/* Language toggle — scrollable pill */}
+          <div
+            className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/5 border border-white/10 overflow-x-auto"
+            style={{ maxWidth: '220px', scrollbarWidth: 'none' }}
+          >
             {LANGS.map(l => (
               <button
                 key={l.id}
@@ -581,7 +626,7 @@ export default function PortalPage() {
                     setTimeout(() => startListening(l.stt), 80)
                   }
                 }}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                className={`flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium transition-all whitespace-nowrap ${
                   lang === l.id
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                     : 'text-white/30 hover:text-white/60'

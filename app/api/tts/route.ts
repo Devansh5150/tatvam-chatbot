@@ -49,8 +49,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return new NextResponse(response.body, {
-      headers: { 'Content-Type': 'audio/mpeg' },
+    // Buffer the full audio — streaming body can lose MIME type when forwarded,
+    // causing the browser blob to be application/octet-stream and refuse to play.
+    const audioBuffer = await response.arrayBuffer()
+    return new NextResponse(audioBuffer, {
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.byteLength.toString(),
+        'Cache-Control': 'no-store',
+      },
     })
 
   } catch (err: any) {

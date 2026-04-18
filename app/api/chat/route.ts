@@ -114,6 +114,26 @@ function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 
     return candidates.slice(0, count).map(s => s.shlok)
 }
 
+// ─── Small-talk prompt (greetings only — short, warm, no structure) ──────────
+
+const SMALL_TALK_PROMPT = `You are Tatvam — a warm, wise spiritual companion.
+The seeker has just greeted you or sent a very casual message.
+Reply in ONE warm sentence — friendly, human, and slightly poetic.
+No scripture. No sections. No markers. No lists. Just one natural, welcoming sentence.`
+
+// ─── Per-language response instructions ──────────────────────────────────────
+
+const LANG_INSTRUCTION: Record<string, string> = {
+  'hi-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Hindi. Write the [HINDI_REPLY] in full, rich, flowing Hindi with Sanskrit shlokas woven naturally. The [ENGLISH_REPLY] can be brief.',
+  'hinglish':'\nLANGUAGE INSTRUCTION: The seeker is speaking Hinglish. Write the [ENGLISH_REPLY] in natural Hinglish — mix Hindi and English words fluidly. The [HINDI_REPLY] in pure Hindi.',
+  'sa':      '\nLANGUAGE INSTRUCTION: The seeker wishes to hear the ancient tongue. Write the [ENGLISH_REPLY] predominantly in Sanskrit (Devanagari script) with an English translation woven in. Lean into classical Sanskrit shlokas and their meanings. The [HINDI_REPLY] can be in Sanskrit-influenced Hindi.',
+  'pa-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Punjabi. Write the [HINDI_REPLY] entirely in Punjabi (Gurmukhi script). The [ENGLISH_REPLY] can remain in Indian English.',
+  'gu-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Gujarati. Write the [HINDI_REPLY] entirely in Gujarati script. The [ENGLISH_REPLY] can remain in Indian English.',
+  'ta-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Tamil. Write the [HINDI_REPLY] entirely in Tamil script. The [ENGLISH_REPLY] can remain in Indian English.',
+  'mr-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Marathi. Write the [HINDI_REPLY] entirely in Marathi (Devanagari). The [ENGLISH_REPLY] can remain in Indian English.',
+  'bn-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Bengali. Write the [HINDI_REPLY] entirely in Bengali (Bangla script). The [ENGLISH_REPLY] can remain in Indian English.',
+}
+
 // ─── Sacred System Prompt ─────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1, language: string = 'en-IN') => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama: the battlefield of Kurukshetra, Rama's exile in the forests of Dandaka, Krishna's dance on the banks of the Yamuna, Hanuman's leap across the ocean, and the deep silence of the Upanishads.
@@ -172,7 +192,7 @@ HOW TO RESPOND:
 
 VOICE: Speak like a rishi at the edge of a forest fire, or a grandmother telling stories by lamplight. Warm, ancient, alive. Never clinical. Never abstract without a story.
 FORMAT RULES: NO EMOJIS. No bullet points. No lists. Flowing prose only. ALWAYS include both [ENGLISH_REPLY] and [HINDI_REPLY] blocks.
-${language === 'hi-IN' ? '\nLANGUAGE INSTRUCTION: The seeker is speaking in Hindi. Write the [HINDI_REPLY] block in full, rich, flowing Hindi with Sanskrit shlokas woven naturally. The [ENGLISH_REPLY] can be brief.' : ''}${language === 'hinglish' ? '\nLANGUAGE INSTRUCTION: The seeker is speaking in Hinglish. Write the [ENGLISH_REPLY] in natural Hinglish — mix Hindi and English words fluidly as young Indians speak. The [HINDI_REPLY] can be in pure Hindi.' : ''}`
+${LANG_INSTRUCTION[language] ?? ''}`
 
 
 // ─── Response Parser ──────────────────────────────────────────────────────────
@@ -243,7 +263,7 @@ const OLLAMA_URL   = process.env.OLLAMA_URL   || 'http://localhost:11434'
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'tatvam'
 
 // ── Groq (primary — fast, cloud) ─────────────────────────────────────────────
-async function callGroq(messages: any[], apiKey: string): Promise<string | null> {
+async function callGroq(messages: any[], apiKey: string, maxTokens = 1200): Promise<string | null> {
     try {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -253,7 +273,7 @@ async function callGroq(messages: any[], apiKey: string): Promise<string | null>
                 messages,
                 temperature: 0.6,
                 top_p: 0.9,
-                max_tokens: 1200,
+                max_tokens: maxTokens,
             }),
         })
         if (!res.ok) { console.warn('Groq failed:', res.status); return null }
@@ -336,8 +356,12 @@ export async function POST(req: NextRequest) {
         let modelUsed = ''
 
         if (isSmallTalk) {
-            // Greetings / hi / small talk → Groq (fast, light)
-            if (groqKey) reply = await callGroq(messages, groqKey)
+            // Greetings → Groq with a minimal prompt and strict token cap
+            const smallMessages = [
+                { role: 'system', content: SMALL_TALK_PROMPT },
+                { role: 'user',   content: message },
+            ]
+            if (groqKey) reply = await callGroq(smallMessages, groqKey, 120)
             modelUsed = 'groq'
         } else {
             // Deep guidance / philosophy / emotions → Ollama (trained Tatvam)
