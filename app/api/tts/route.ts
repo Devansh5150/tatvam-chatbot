@@ -9,10 +9,9 @@ function cleanText(raw: string): string {
     .trim()
 }
 
-const VOICE_ID = 'DjajAdpxrfJmDDIXHINm'
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'nPczCjzI2devNBz1zQrb'
 
 export async function POST(req: NextRequest) {
-  try {
     const { text: rawText } = await req.json()
     if (!rawText) return NextResponse.json({ detail: 'Text is required' }, { status: 400 })
 

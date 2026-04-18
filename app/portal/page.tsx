@@ -8,6 +8,8 @@ import { RotateCcw } from 'lucide-react'
 import { ShootingStars } from '@/components/ui/shooting-stars'
 import { StarsBackground } from '@/components/ui/stars-background'
 import { useVoiceInteraction } from '@/hooks/use-voice-interaction'
+import { useLanguage } from '@/lib/i18n/LanguageContext'
+import type { Language } from '@/lib/i18n/dictionaries'
 
 const MonkAvatar = dynamic(() => import('@/components/MonkAvatar'), { ssr: false })
 
@@ -72,22 +74,21 @@ function SpeakingWaveform() {
 
 export default function PortalPage() {
   const router = useRouter()
+  const { language, setLanguage, t } = useLanguage()
 
-  type Lang = 'en-IN' | 'hi-IN' | 'hinglish' | 'sa' | 'pa-IN' | 'gu-IN' | 'ta-IN' | 'mr-IN' | 'bn-IN'
-  const LANGS: { id: Lang; label: string; stt: string }[] = [
-    { id: 'en-IN',   label: 'EN',  stt: 'en-IN' },
-    { id: 'hi-IN',   label: 'हि',  stt: 'hi-IN' },
-    { id: 'hinglish',label: 'HIN', stt: 'en-IN' },
-    { id: 'sa',      label: 'संस्कृ', stt: 'hi-IN' },
-    { id: 'pa-IN',   label: 'ਪੰਜਾ', stt: 'pa-IN' },
-    { id: 'gu-IN',   label: 'ગુજ',  stt: 'gu-IN' },
-    { id: 'ta-IN',   label: 'தமிழ்', stt: 'ta-IN' },
-    { id: 'mr-IN',   label: 'मराठी', stt: 'mr-IN' },
-    { id: 'bn-IN',   label: 'বাংলা', stt: 'bn-IN' },
-  ]
+  const STT_CONFIG: Record<Language, { label: string; stt: string }> = {
+    'en':   { label: 'EN',  stt: 'en-IN' },
+    'hi':   { label: 'हि',  stt: 'hi-IN' },
+    'hin':  { label: 'HIN', stt: 'en-IN' },
+    'sa':   { label: 'संस्कृ', stt: 'hi-IN' },
+    'pa':   { label: 'ਪੰਜਾ', stt: 'pa-IN' },
+    'gu':   { label: 'ગુજ',  stt: 'gu-IN' },
+    'ta':   { label: 'தமிழ்', stt: 'ta-IN' },
+    'mr':   { label: 'मराठी', stt: 'mr-IN' },
+    'bn':   { label: 'বাংলা', stt: 'bn-IN' },
+  }
 
   const [status, setStatus]         = useState<PortalState>('connecting')
-  const [lang, setLang]             = useState<Lang>('en-IN' as Lang)
   const [userText, setUserText]     = useState('')
   const [sentences, setSentences]   = useState<string[]>([])
   const [currentIdx, setCurrentIdx] = useState(-1)
@@ -98,10 +99,10 @@ export default function PortalPage() {
   const [userName, setUserName]     = useState('Seeker')
   const [conversationId, setConversationId] = useState<string | null>(null)
 
-  const langRef = useRef<Lang>('en-IN' as Lang)
-  useEffect(() => { langRef.current = lang }, [lang])
+  const langRef = useRef<Language>(language)
+  useEffect(() => { langRef.current = language }, [language])
 
-  const getSttLang = () => LANGS.find(l => l.id === langRef.current)?.stt ?? 'en-IN'
+  const getSttLang = () => STT_CONFIG[langRef.current]?.stt ?? 'en-IN'
 
   const audioRef      = useRef<HTMLAudioElement | null>(null)
   const rafRef        = useRef<number | null>(null)
@@ -277,7 +278,7 @@ export default function PortalPage() {
       const hindiText: string   = data.reply_hindi || ''
       if (!englishText && !hindiText) throw new Error('Empty reply from AI')
 
-      const useLocalised = langRef.current !== 'en-IN' && langRef.current !== 'hinglish' && !!hindiText
+      const useLocalised = langRef.current !== 'en' && langRef.current !== 'hin' && !!hindiText
       const primaryText = useLocalised ? hindiText : englishText
       const sents = splitSentences(primaryText)
       sentencesRef.current = sents
@@ -376,12 +377,12 @@ export default function PortalPage() {
           </div>
 
           <div className="flex flex-col items-center gap-1.5 w-full">
-            <p className="text-white/20 text-[9px] uppercase tracking-[0.2em]">Speak in</p>
+            <p className="text-white/20 text-[9px] uppercase tracking-[0.2em]">{t('speakIn') || 'SPEAK IN'}</p>
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm overflow-x-auto w-full max-w-sm justify-center flex-wrap" style={{ scrollbarWidth: 'none' }}>
-              {LANGS.map(l => (
-                <motion.button key={l.id} onClick={() => { setLang(l.id); if (status === 'listening') { stopListening(); setTimeout(() => startListening(l.stt), 80) } }} whileTap={{ scale: 0.92 }}
-                  className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${lang === l.id ? 'bg-amber-500/20 text-amber-200 border-amber-400/40 shadow-[0_0_8px_rgba(251,191,36,0.2)]' : 'bg-transparent text-white/30 border-white/[0.08] hover:text-white/60 hover:border-white/20'}`}>
-                  {l.label}
+              {(Object.entries(STT_CONFIG) as [Language, { label: string; stt: string }][]).map(([id, config]) => (
+                <motion.button key={id} onClick={() => { setLanguage(id); if (status === 'listening') { stopListening(); setTimeout(() => startListening(config.stt), 80) } }} whileTap={{ scale: 0.92 }}
+                  className={`flex-shrink-0 px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${language === id ? 'bg-amber-500/20 text-amber-200 border-amber-400/40 shadow-[0_0_8px_rgba(251,191,36,0.2)]' : 'bg-transparent text-white/30 border-white/[0.08] hover:text-white/60 hover:border-white/20'}`}>
+                  {config.label}
                 </motion.button>
               ))}
             </div>

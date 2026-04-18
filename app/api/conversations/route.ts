@@ -37,21 +37,97 @@ export async function GET(req: NextRequest) {
             throw convError
         }
 
+interface ResponsePart {
+    type: 'chat' | 'acknowledge' | 'scripture' | 'teaching' | 'guidance'
+    content: string
+    source?: string
+}
+
+function parseAIResponse(reply: string): ResponsePart[] {
+    const parts: ResponsePart[] = []
+    const sectionPattern = /\[(CHAT|ACKNOWLEDGE|SCRIPTURE|TEACHING|GUIDANCE)\]\s*/gi
+    const markers: { type: string; index: number; fullMatchLength: number }[] = []
+
+    let match
+    while ((match = sectionPattern.exec(reply)) !== null) {
+        markers.push({
+            type: match[1].toLowerCase(),
+            index: match.index,
+            fullMatchLength: match[0].length,
+        })
+    }
+
+    if (markers.length === 0) return [{ type: 'chat', content: reply.trim() }]
+
+    for (let i = 0; i < markers.length; i++) {
+        const contentStart = markers[i].index + markers[i].fullMatchLength
+        const contentEnd = i + 1 < markers.length ? markers[i + 1].index : reply.length
+        let content = reply.slice(contentStart, contentEnd).trim()
+        if (!content) continue
+        const type = markers[i].type as ResponsePart['type']
+        if (type === 'scripture') {
+            const sourceMatch = content.match(/—\s*(.+?)$/m)
+            const source = sourceMatch ? sourceMatch[1].trim() : undefined
+            parts.push({ type, content, source })
+        } else {
+            parts.push({ type, content })
+        }
+    }
+    return parts.length > 0 ? parts : [{ type: 'chat', content: reply.trim() }]
+}
+
+function splitBilingualReply(reply: string): { english: string; hindi: string } {
+    const engMatch = reply.match(/\[ENGLISH_REPLY\]([\s\S]*?)(?=\[HINDI_REPLY\]|$)/i)
+    const hindiMatch = reply.match(/\[HINDI_REPLY\]([\s\S]*?)$/i)
+    return {
+        english: engMatch ? engMatch[1].trim() : reply.trim(),
+        hindi: hindiMatch ? hindiMatch[1].trim() : '',
+    }
+}
+
         // Format to match frontend structure
-        const formatted = conversations.map(c => ({
-            id: c.id,
-            title: c.title,
-            updatedAt: new Date(c.created_at).getTime(),
-            messages: c.messages.sort((a: any, b: any) => 
+        const formatted = conversations.map(c => {
+            const allMessages: any[] = [];
+            
+            c.messages.sort((a: any, b: any) => 
                 new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            ).map((m: any) => ({
-                id: m.id,
-                type: m.role === 'user' ? 'user' : 'chat',
-                content: m.content,
-                timestamp: new Date(m.created_at),
-                metadata: m.metadata
-            }))
-        }))
+            ).forEach((m: any) => {
+                if (m.role === 'user') {
+                    allMessages.push({
+                        id: m.id,
+                        type: 'user',
+                        content: m.content,
+                        timestamp: new Date(m.created_at),
+                        metadata: m.metadata
+                    })
+                } else {
+                    const { english: reply_english } = splitBilingualReply(m.content)
+                    const parts = parseAIResponse(reply_english)
+                    parts.forEach((p, i) => {
+                        let msgType = 'chat'
+                        if (p.type === 'scripture') msgType = 'shlok'
+                        else if (p.type === 'teaching') msgType = 'meaning'
+                        else if (p.type === 'guidance') msgType = 'reflection'
+                        
+                        allMessages.push({
+                            id: m.id + '-' + i,
+                            type: msgType,
+                            content: p.content,
+                            source: p.source,
+                            timestamp: new Date(m.created_at),
+                            metadata: m.metadata
+                        })
+                    })
+                }
+            })
+
+            return {
+                id: c.id,
+                title: c.title,
+                updatedAt: new Date(c.created_at).getTime(),
+                messages: allMessages
+            }
+        })
 
         return NextResponse.json(formatted)
     } catch (err: any) {

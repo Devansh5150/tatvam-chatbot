@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       .replace(/\s{2,}/g, ' ')
       .trim()
 
-    const VOICE_ID = 'DjajAdpxrfJmDDIXHINm'
+    const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'nPczCjzI2devNBz1zQrb'
     const apiKey = process.env.ELEVENLABS_API_KEY
 
     if (!apiKey) {

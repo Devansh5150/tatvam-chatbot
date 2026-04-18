@@ -164,13 +164,23 @@ export default function LoginPage() {
                                     setIsLoading(true)
                                     setError(null)
                                     try {
-                                        const response = await fetch('/api/auth/login', {
+                                        let response = await fetch('/api/auth/login', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ email: 'tatvam_llm@dev.com', password: 'tatvam123' }),
                                         })
-                            
-                                        const data = await response.json()
+
+                                        let data = await response.json()
+
+                                        // If login fails (e.g. user doesn't exist in Supabase), seed it by signing up
+                                        if (!response.ok) {
+                                            response = await fetch('/api/auth/signup', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ name: 'LLM Dev User', email: 'tatvam_llm@dev.com', password: 'tatvam123' }),
+                                            })
+                                            data = await response.json()
+                                        }
                             
                                         if (!response.ok) throw new Error(data.detail || 'Something went wrong')
                             
@@ -178,7 +188,7 @@ export default function LoginPage() {
                                         localStorage.setItem('tatvam_user', JSON.stringify(data.user))
                                         window.location.href = '/dashboard'
                                     } catch (err: any) {
-                                        setError('Dev Login Failed: You may need to restart the backend to seed the dev user.')
+                                        setError('Dev Login Failed: ' + err.message)
                                         setIsLoading(false)
                                     }
                                 }}
