@@ -116,7 +116,7 @@ function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 
 
 // ─── Sacred System Prompt ─────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1) => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama: the battlefield of Kurukshetra, Rama's exile in the forests of Dandaka, Krishna's dance on the banks of the Yamuna, Hanuman's leap across the ocean, and the deep silence of the Upanishads.
+const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1, language: string = 'en-IN') => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama: the battlefield of Kurukshetra, Rama's exile in the forests of Dandaka, Krishna's dance on the banks of the Yamuna, Hanuman's leap across the ocean, and the deep silence of the Upanishads.
 
 The person speaking with you is ${userName}. Address them as a seeker who has come to you for wisdom from the ancient world.
 
@@ -171,7 +171,8 @@ HOW TO RESPOND:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 VOICE: Speak like a rishi at the edge of a forest fire, or a grandmother telling stories by lamplight. Warm, ancient, alive. Never clinical. Never abstract without a story.
-FORMAT RULES: NO EMOJIS. No bullet points. No lists. Flowing prose only. ALWAYS include both [ENGLISH_REPLY] and [HINDI_REPLY] blocks.`
+FORMAT RULES: NO EMOJIS. No bullet points. No lists. Flowing prose only. ALWAYS include both [ENGLISH_REPLY] and [HINDI_REPLY] blocks.
+${language === 'hi-IN' ? '\nLANGUAGE INSTRUCTION: The seeker is speaking in Hindi. Write the [HINDI_REPLY] block in full, rich, flowing Hindi with Sanskrit shlokas woven naturally. The [ENGLISH_REPLY] can be brief.' : ''}${language === 'hinglish' ? '\nLANGUAGE INSTRUCTION: The seeker is speaking in Hinglish. Write the [ENGLISH_REPLY] in natural Hinglish — mix Hindi and English words fluidly as young Indians speak. The [HINDI_REPLY] can be in pure Hindi.' : ''}`
 
 
 // ─── Response Parser ──────────────────────────────────────────────────────────
@@ -236,29 +237,72 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
     }
 }
 
-// ─── Chat API (Groq) ──────────────────────────────────────────────────────────
+// ─── Chat API (Sarvam AI) ──────────────────────────────────────────────────────────
+
+const OLLAMA_URL   = process.env.OLLAMA_URL   || 'http://localhost:11434'
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'tatvam'
+
+// ── Groq (primary — fast, cloud) ─────────────────────────────────────────────
+async function callGroq(messages: any[], apiKey: string): Promise<string | null> {
+    try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages,
+                temperature: 0.6,
+                top_p: 0.9,
+                max_tokens: 1200,
+            }),
+        })
+        if (!res.ok) { console.warn('Groq failed:', res.status); return null }
+        const data = await res.json()
+        return data.choices?.[0]?.message?.content?.trim() || null
+    } catch (e) {
+        console.warn('Groq error, falling back to Ollama:', e)
+        return null
+    }
+}
+
+// ── Ollama (fallback — local, always available) ───────────────────────────────
+async function callOllama(messages: any[]): Promise<string | null> {
+    try {
+        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                messages,
+                stream: false,
+                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 250, num_ctx: 1024 },
+            }),
+            signal: AbortSignal.timeout(60000),
+        })
+        if (!res.ok) { console.warn('Ollama failed:', res.status); return null }
+        const data = await res.json()
+        return data.message?.content?.trim() || null
+    } catch (e) {
+        console.warn('Ollama error:', e)
+        return null
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
-        const { message, history, userName } = await req.json()
+        const { message, history, userName, language = 'en-IN' } = await req.json()
 
         if (!message) {
             return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
         }
 
-        const apiKey = process.env.GROQ_API_KEY
-        if (!apiKey) {
-            return NextResponse.json(
-                { detail: 'Groq API key is not configured. Add GROQ_API_KEY to your .env.local file.' },
-                { status: 500 }
-            )
-        }
+        // RAG: skip for short greetings / small talk
+        const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i
+        const isSmallTalk = message.trim().split(/\s+/).length <= 4 || GREETINGS.test(message.trim())
 
-        // RAG: Find relevant scriptures
-        const scriptures = loadScriptures()
-        const relevant = findRelevantShloks(message, scriptures)
+        const scriptures = isSmallTalk ? [] : loadScriptures()
+        const relevant   = isSmallTalk ? [] : findRelevantShloks(message, scriptures)
 
-        // Build context with relevant scripture
         let scriptureContext = ''
         if (relevant.length > 0) {
             scriptureContext = '\n\nSCRIPTURAL ESSENCE FOR THIS MOMENT:\n'
@@ -268,17 +312,14 @@ export async function POST(req: NextRequest) {
             scriptureContext += '\nIntegrate these naturally into the [TEACHING] part if they serve our friend.'
         }
 
-        // Count how many user messages have already been sent (excluding the current one)
         const userMessageCount = history && Array.isArray(history)
             ? history.filter((m: any) => m.type === 'user').length + 1
             : 1
 
-        // Build messages array for Groq (OpenAI-compatible format)
         const messages: { role: string; content: string }[] = [
-            { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount) + scriptureContext },
+            { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount, language) + scriptureContext },
         ]
 
-        // Add history
         if (history && Array.isArray(history)) {
             for (const msg of history.slice(-10)) {
                 messages.push({
@@ -288,56 +329,43 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Add current message
         messages.push({ role: 'user', content: message })
 
-        // Call Groq API
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages,
-                temperature: 0.6,
-                top_p: 0.9,
-                max_tokens: 1200,
-            }),
-        })
+        const groqKey = process.env.GROQ_API_KEY
+        let reply: string | null = null
+        let modelUsed = ''
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            console.error('Groq API error:', JSON.stringify(errorData, null, 2))
-            const errorMessage = errorData?.error?.message || 'Unknown error from Groq API'
-            return NextResponse.json(
-                { detail: `Groq API error (${response.status}): ${errorMessage}` },
-                { status: response.status === 429 ? 429 : 502 }
-            )
+        if (isSmallTalk) {
+            // Greetings / hi / small talk → Groq (fast, light)
+            if (groqKey) reply = await callGroq(messages, groqKey)
+            modelUsed = 'groq'
+        } else {
+            // Deep guidance / philosophy / emotions → Ollama (trained Tatvam)
+            reply = await callOllama(messages)
+            modelUsed = 'ollama'
+            // Fallback to Groq if Ollama is down
+            if (!reply && groqKey) {
+                console.log('Ollama unavailable, falling back to Groq...')
+                reply = await callGroq(messages, groqKey)
+                modelUsed = 'groq-fallback'
+            }
         }
-
-        const data = await response.json()
-        const reply = data.choices?.[0]?.message?.content
 
         if (!reply) {
-            return NextResponse.json(
-                { detail: 'No reflection was generated. Please try again.' },
-                { status: 500 }
-            )
+            return NextResponse.json({ detail: 'Both Groq and Ollama failed. Please try again.' }, { status: 500 })
         }
 
-        // Split into English and Hindi blocks
-        const { english: reply_english, hindi: reply_hindi } = splitBilingualReply(reply)
+        console.log(`Response from: ${modelUsed}`)
 
-        // Parse the English parts for structured display if needed
-        let parts = parseAIResponse(reply_english)
+        const { english: reply_english, hindi: reply_hindi } = splitBilingualReply(reply)
+        const parts = parseAIResponse(reply_english)
 
         return NextResponse.json({
             reply,
             reply_english,
             reply_hindi,
             parts,
+            model_used: modelUsed,
             scriptures_used: relevant.map(s => s.source || s.id),
         })
     } catch (err: any) {

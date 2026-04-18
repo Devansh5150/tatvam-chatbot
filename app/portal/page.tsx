@@ -82,7 +82,15 @@ function SpeakingWaveform() {
 export default function PortalPage() {
   const router = useRouter()
 
+  type Lang = 'en-IN' | 'hi-IN' | 'hinglish'
+  const LANGS: { id: Lang; label: string; stt: string }[] = [
+    { id: 'en-IN',    label: 'EN',       stt: 'en-IN' },
+    { id: 'hi-IN',    label: 'हि',       stt: 'hi-IN' },
+    { id: 'hinglish', label: 'HIN',      stt: 'en-IN' },
+  ]
+
   const [status, setStatus]         = useState<PortalState>('connecting')
+  const [lang, setLang]             = useState<Lang>('en-IN')
   const [userText, setUserText]     = useState('')
   const [sentences, setSentences]   = useState<string[]>([])
   const [currentIdx, setCurrentIdx] = useState(-1)
@@ -90,6 +98,11 @@ export default function PortalPage() {
   const [hindiAudioUrl, setHindiAudioUrl]     = useState<string | null>(null)
   const [replayReady, setReplayReady] = useState(false)
   const [apiError, setApiError]     = useState<string | null>(null)
+
+  const langRef = useRef<Lang>('en-IN')
+  useEffect(() => { langRef.current = lang }, [lang])
+
+  const getSttLang = () => LANGS.find(l => l.id === langRef.current)?.stt ?? 'en-IN'
 
   const audioRef      = useRef<HTMLAudioElement | null>(null)
   const rafRef        = useRef<number | null>(null)
@@ -117,7 +130,7 @@ export default function PortalPage() {
   useEffect(() => {
     const t = setTimeout(() => {
       setStatus('listening')
-      startListening('en-IN')
+      startListening(getSttLang())
     }, 1800)
     return () => {
       clearTimeout(t)
@@ -266,16 +279,18 @@ export default function PortalPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: [], userName: 'Seeker' }),
+        body: JSON.stringify({ message: text, history: [], userName: 'Seeker', language: langRef.current }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || `Chat error ${res.status}`)
 
       const englishText: string = data.reply_english || data.reply || ''
       const hindiText: string   = data.reply_hindi || ''
-      if (!englishText) throw new Error('Empty reply from AI')
+      if (!englishText && !hindiText) throw new Error('Empty reply from AI')
 
-      const sents = splitSentences(englishText)
+      // For Hindi mode, speak the Hindi reply primarily
+      const primaryText = langRef.current === 'hi-IN' && hindiText ? hindiText : englishText
+      const sents = splitSentences(primaryText)
       sentencesRef.current = sents
       // Initial rough timing (will be overridden by onloadedmetadata)
       timingsRef.current = sents.map((_, i) => 0.2 + i * 2.5)
@@ -284,8 +299,8 @@ export default function PortalPage() {
       setStatus('speaking')
 
       const [engUrl, hinUrl] = await Promise.all([
-        fetchAudio(englishText),
-        fetchAudio(hindiText),
+        fetchAudio(primaryText),
+        langRef.current !== 'hi-IN' && hindiText ? fetchAudio(hindiText) : Promise.resolve(null),
       ])
 
       prevEngUrl.current = engUrl
@@ -299,13 +314,13 @@ export default function PortalPage() {
         await playAudioUrl(engUrl, true)
       } else {
         // ElevenLabs quota hit — browser TTS, sentence-by-sentence (perfect sync)
-        await speakSentencesBrowserTTS(sents, 'en-IN')
+        await speakSentencesBrowserTTS(sents, getSttLang())
       }
 
       setCurrentIdx(-1)
       setReplayReady(!!engUrl) // replay buttons only make sense for ElevenLabs audio
       setStatus('listening')
-      startListening('en-IN')
+      startListening(getSttLang())
 
     } catch (e: any) {
       console.error('Conversation error:', e)
@@ -324,7 +339,7 @@ export default function PortalPage() {
       stopTracking()
       setCurrentIdx(-1)
       setStatus('listening')
-      startListening('en-IN')
+      startListening(getSttLang())
     } else if (status === 'listening') {
       stopListening()
       setStatus('idle')
@@ -334,7 +349,7 @@ export default function PortalPage() {
       setCurrentIdx(-1)
       setApiError(null)
       setStatus('listening')
-      startListening('en-IN')
+      startListening(getSttLang())
     }
   }
 
@@ -551,6 +566,31 @@ export default function PortalPage() {
               : status === 'thinking'  ? 'Thinking…'
               : 'Tap to speak'}
           </button>
+
+          <div className="w-px h-5 bg-white/10" />
+
+          {/* Language toggle */}
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/5 border border-white/10">
+            {LANGS.map(l => (
+              <button
+                key={l.id}
+                onClick={() => {
+                  setLang(l.id)
+                  if (status === 'listening') {
+                    stopListening()
+                    setTimeout(() => startListening(l.stt), 80)
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  lang === l.id
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-white/30 hover:text-white/60'
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
 
           <div className="w-px h-5 bg-white/10" />
 
