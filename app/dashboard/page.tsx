@@ -81,7 +81,7 @@ const DAILY_SHLOKS = [
 
 // ─── Sidebar Types & Helpers ─────────────────────────────────────────────────
 
-type SidebarPanel = 'bhajans' | 'shlok_guide' | 'settings' | null
+type SidebarPanel = 'bhajans' | 'shlok_guide' | 'settings' | 'history' | null
 
 const BHAJANS = [
     { title: 'Om Namah Shivaya', artist: 'Suresh Wadkar', src: 'https://archive.org/download/OmNamahShivayaBySureshWadkar/Om%20Namah%20Shivaya%20by%20Suresh%20Wadkar.mp3' },
@@ -369,6 +369,59 @@ function SettingsPanel({ onClose, onLogout, volume, onVolumeChange }: { onClose:
 
 // ─── Sidebar Btn ──────────────────────────────────────────────────────────────
 
+function HistoryPanel({ 
+    onClose, 
+    conversations, 
+    activeId, 
+    onSelect 
+}: { 
+    onClose: () => void; 
+    conversations: Conversation[]; 
+    activeId: string | null; 
+    onSelect: (id: string) => void 
+}) {
+    return (
+        <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+                <div>
+                    <h3 className="font-serif text-foreground text-base font-medium">History</h3>
+                    <p className="text-muted-foreground text-xs mt-0.5 font-sans">Your past reflections</p>
+                </div>
+                <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+                {conversations.length === 0 ? (
+                    <div className="text-center py-10">
+                        <p className="text-muted-foreground text-xs font-sans">No history yet.</p>
+                    </div>
+                ) : (
+                    conversations.map((c) => (
+                        <button
+                            key={c.id}
+                            onClick={() => onSelect(c.id)}
+                            className={`w-full text-left px-4 py-3 rounded-2xl border transition-all ${
+                                activeId === c.id
+                                    ? 'border-accent/40 bg-accent/5'
+                                    : 'border-border hover:border-accent/20 hover:bg-muted'
+                            }`}
+                        >
+                            <p className={`text-sm font-sans font-medium truncate ${activeId === c.id ? 'text-accent' : 'text-foreground'}`}>
+                                {c.title || 'Untitled Reflection'}
+                            </p>
+                            <p className="text-muted-foreground text-[10px] font-sans mt-0.5">
+                                {new Date(c.updatedAt).toLocaleDateString()}
+                            </p>
+                        </button>
+                    ))
+                )}
+            </div>
+        </div>
+    )
+}
+
 function SidebarBtn({
 
     label, active, onClick, children, badge,
@@ -458,6 +511,18 @@ function DashboardSidebar({
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                </SidebarBtn>
+
+                {/* History */}
+                <SidebarBtn
+                    label="History"
+                    active={activePanel === 'history'}
+                    onClick={() => onTogglePanel(activePanel === 'history' ? null : 'history')}
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 8v4l3 3" />
+                        <circle cx="12" cy="12" r="9" />
                     </svg>
                 </SidebarBtn>
             </nav>
@@ -623,6 +688,27 @@ export default function DashboardPage() {
     const [activePanel, setActivePanel] = useState<SidebarPanel>(null)
     const chatContainerRef = useRef<HTMLDivElement>(null)
 
+    const fetchConversations = async () => {
+        const token = localStorage.getItem('tatvam_token')
+        if (!token) return
+
+        try {
+            const response = await fetch('/api/conversations', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (response.ok) {
+                const data = await response.json()
+                setConversations(data)
+                if (data.length > 0 && !activeConversationId) {
+                    setActiveConversationId(data[0].id)
+                    setMessages(data[0].messages)
+                }
+            }
+        } catch (e) {
+            console.error('Fetch conversations error:', e)
+        }
+    }
+
     // Audio Playback
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const [playingTrack, setPlayingTrack] = useState<number | null>(null)
@@ -692,30 +778,14 @@ export default function DashboardPage() {
         setMessages(prev => [...prev, ...newMessages])
     }
 
-    // Load conversations on mount
+    // Load conversations from DB on mount
     useEffect(() => {
-        const stored = localStorage.getItem('tatvam_conversations')
-        if (stored) {
-            try {
-                const parsed: Conversation[] = JSON.parse(stored)
-                // Convert timestamp strings back to Date objects
-                parsed.forEach(c => {
-                    c.messages.forEach(m => {
-                        m.timestamp = new Date(m.timestamp)
-                    })
-                })
-                setConversations(parsed)
-                if (parsed.length > 0) {
-                    setActiveConversationId(parsed[0].id)
-                    setMessages(parsed[0].messages)
-                }
-            } catch (e) {
-                console.error('Failed to load conversations', e)
-            }
+        if (isAuthenticated) {
+            fetchConversations()
         }
-    }, [])
+    }, [isAuthenticated])
 
-    // Update messages when active conversation changes
+    // Sync local message state with active conversation
     useEffect(() => {
         if (activeConversationId) {
             const active = conversations.find(c => c.id === activeConversationId)
@@ -723,41 +793,7 @@ export default function DashboardPage() {
                 setMessages(active.messages)
             }
         }
-    }, [activeConversationId])
-
-    // Save conversations when they change
-    useEffect(() => {
-        if (conversations.length > 0) {
-            // Merging logic to be safe: don't overwrite a larger list with a smaller one
-            // if the smaller one is just a default initialization
-            const stored = localStorage.getItem('tatvam_conversations')
-            if (stored) {
-                try {
-                    const parsed: Conversation[] = JSON.parse(stored)
-                    if (parsed.length > conversations.length && conversations.length === 1 && conversations[0].id.startsWith('initial-')) {
-                        // We are likely in a race condition where the default loaded but haven't synced from stored yet
-                        return
-                    }
-                } catch { }
-            }
-            localStorage.setItem('tatvam_conversations', JSON.stringify(conversations))
-        }
-    }, [conversations])
-
-    // Update active conversation current messages
-    useEffect(() => {
-        if (activeConversationId && messages.length > 0) {
-            setConversations(prev => {
-                const existing = prev.find(c => c.id === activeConversationId)
-                if (existing && existing.messages === messages) return prev // No change
-                return prev.map(c =>
-                    c.id === activeConversationId
-                        ? { ...c, messages, updatedAt: Date.now() }
-                        : c
-                )
-            })
-        }
-    }, [messages, activeConversationId])
+    }, [activeConversationId, conversations])
 
     // Update remaining count on mount and after each message
     useEffect(() => {
@@ -937,10 +973,19 @@ export default function DashboardPage() {
                 .slice(-10)
                 .map(m => ({ type: m.type, content: m.content }))
 
+            const token = localStorage.getItem('tatvam_token')
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage, history, userName }),
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ 
+                    message: userMessage, 
+                    history, 
+                    userName,
+                    conversationId: activeConversationId && !activeConversationId.startsWith('initial') ? activeConversationId : null
+                }),
             })
 
             const data = await response.json()
@@ -987,6 +1032,12 @@ export default function DashboardPage() {
             setRemaining(getRemainingMessages())
 
             setMessages(prev => [...prev, ...newMessages])
+
+            // 🆔 New Sync Logic: If a new conversation was created on the server, update local state
+            if (data.conversationId && data.conversationId !== activeConversationId) {
+                setActiveConversationId(data.conversationId)
+                fetchConversations() // Refresh sidebar list to include the new real ID
+            }
         } catch (err: any) {
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
@@ -1031,6 +1082,27 @@ export default function DashboardPage() {
 
                 {/* Slide-in Panels */}
                 <AnimatePresence mode="wait">
+                    {/* Panels */}
+                    {activePanel === 'history' && (
+                        <motion.div
+                            key="history"
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -20, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="h-full border-r border-border"
+                        >
+                            <HistoryPanel
+                                onClose={() => setActivePanel(null)}
+                                conversations={conversations}
+                                activeId={activeConversationId}
+                                onSelect={(id) => {
+                                    setActiveConversationId(id)
+                                    setActivePanel(null)
+                                }}
+                            />
+                        </motion.div>
+                    )}
                     {activePanel === 'bhajans' && (
                         <motion.div
                             key="bhajans"

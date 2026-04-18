@@ -14,7 +14,8 @@ import { useVoiceInteraction } from '@/hooks/use-voice-interaction'
 export default function PortalPage() {
   const router = useRouter()
   const [status, setStatus] = useState<'connecting' | 'listening' | 'thinking' | 'speaking' | 'idle'>('connecting')
-  const [intention, setIntention] = useState('')
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [userName, setUserName] = useState('Seeker')
   const [isFocusing, setIsFocusing] = useState(false)
   const [timer, setTimer] = useState(0)
   const [volume, setVolume] = useState(0.5)
@@ -36,8 +37,18 @@ export default function PortalPage() {
   useEffect(() => {
     const savedVolume = localStorage.getItem('tatvam_volume')
     const savedTrack = localStorage.getItem('tatvam_active_bhajan_src')
+    const savedUser = localStorage.getItem('tatvam_user')
+    
     if (savedVolume) setVolume(parseFloat(savedVolume))
     if (savedTrack) setActiveTrack(savedTrack)
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser)
+            setUserName(user.name || 'Seeker')
+        } catch (e) {
+            console.error('User parse error:', e)
+        }
+    }
   }, [])
 
   // Auto-start voice loop on mount
@@ -62,19 +73,29 @@ export default function PortalPage() {
 
   const handleConversation = async (text: string) => {
     setStatus('thinking')
+    const token = localStorage.getItem('tatvam_token')
     
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ 
           message: text, 
-          history: [], 
-          userName: 'Traveler' // Default or fetch from session
+          history: [], // For simplicity, we can let the backend handle history or pass it here
+          userName: userName,
+          conversationId: conversationId
         }),
       })
 
       const data = await response.json()
+      
+      if (data.conversationId) {
+          setConversationId(data.conversationId)
+      }
+
       if (data.reply) {
         setStatus('speaking')
         const ttsText = data.reply.replace(/\[.*?\]/g, '').trim()
@@ -88,6 +109,7 @@ export default function PortalPage() {
       setStatus('idle')
     }
   }
+
 
   // Audio Logic
   useEffect(() => {

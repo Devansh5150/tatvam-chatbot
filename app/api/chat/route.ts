@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
-// ─── Scripture RAG ────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Shlok {
     id: string
@@ -14,97 +13,6 @@ interface Shlok {
     source?: string
     chapter?: number
     verse?: number
-}
-
-function loadScriptures(): Shlok[] {
-    try {
-        const path = join(process.cwd(), 'data', 'scriptures.json')
-        const raw = readFileSync(path, 'utf-8')
-        const db = JSON.parse(raw)
-        return [
-            ...db.gita.map((s: any) => ({ ...s, source: `Bhagavad Gita ${s.chapter}.${s.verse}` })),
-            ...db.ramayana,
-            ...db.mahabharata,
-        ]
-    } catch {
-        return []
-    }
-}
-
-function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 5): Shlok[] {
-    const queryLower = query.toLowerCase()
-    const words = queryLower.split(/\s+/)
-
-    // Emotional synonyms / related concepts
-    const synonymMap: Record<string, string[]> = {
-        'sad': ['grief', 'loss', 'sorrow', 'pain', 'unhappy', 'lonely', 'broken', 'cry', 'depressed'],
-        'lonely': ['alone', 'solitude', 'presence', 'isolated', 'connection'],
-        'angry': ['anger', 'rage', 'frustration', 'irritation', 'conflict', 'resentment'],
-        'scared': ['fear', 'anxiety', 'worry', 'doubt', 'uncertainty', 'stress', 'panic'],
-        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction'],
-        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity'],
-        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job'],
-        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego'],
-        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying'],
-    }
-
-    // Expand query with synonyms
-    let expandedQuery = queryLower
-    for (const [key, synonyms] of Object.entries(synonymMap)) {
-        if (queryLower.includes(key)) {
-            expandedQuery += ' ' + synonyms.join(' ')
-        }
-        // Check inverse (if a synonym is in the query, include the key)
-        if (synonyms.some(s => queryLower.includes(s))) {
-            expandedQuery += ' ' + key
-        }
-    }
-
-    const scored = scriptures.map(shlok => {
-        let score = 0
-        const themes = shlok.themes.map(t => t.toLowerCase())
-
-        // 1. Exact Theme Match (highest weight)
-        for (const theme of themes) {
-            if (queryLower.includes(theme)) {
-                score += 20 
-            } else if (expandedQuery.includes(theme)) {
-                score += 8
-            }
-        }
-
-        // 2. Word-to-Theme partial match 
-        for (const word of words) {
-            if (word.length < 3) continue
-            for (const theme of themes) {
-                if (theme.includes(word) || word.includes(theme)) {
-                    score += 5
-                }
-            }
-        }
-
-        // 3. English Content Match
-        const englishLower = shlok.english.toLowerCase()
-        if (words.some(w => w.length > 3 && englishLower.includes(w))) {
-            score += 5
-        }
-
-        // 4. Multi-theme bonus
-        const matchingThemes = themes.filter(t => queryLower.includes(t))
-        if (matchingThemes.length > 1) score += (matchingThemes.length * 5)
-
-        // 5. Source weight (favor Gita for general wisdom)
-        if (shlok.id.startsWith('gita')) score += 2
-
-        return { shlok, score }
-    })
-
-    // Sort and filter with a low threshold for better variety
-    const candidates = scored
-        .filter(s => s.score >= 10) 
-        .sort((a, b) => b.score - a.score)
-
-    return candidates.slice(0, count).map(s => s.shlok)
 }
 
 // ─── Sacred System Prompt ─────────────────────────────────────────────────────
@@ -147,7 +55,6 @@ CONVERSATION RULES:
 TONE: Warm, grounded, non-preachy. Like a trusted elder who has lived through much. 
 FORMAT RULES: NO EMOJIS. No lists. No bullet points.`
 
-
 // ─── Response Parser ──────────────────────────────────────────────────────────
 
 interface ResponsePart {
@@ -158,8 +65,6 @@ interface ResponsePart {
 
 function parseAIResponse(reply: string): ResponsePart[] {
     const parts: ResponsePart[] = []
-
-    // Split by section markers, keeping the marker names
     const sectionPattern = /\[(CHAT|ACKNOWLEDGE|SCRIPTURE|TEACHING|GUIDANCE)\]\s*/gi
     const markers: { type: string; index: number; fullMatchLength: number }[] = []
 
@@ -172,7 +77,6 @@ function parseAIResponse(reply: string): ResponsePart[] {
         })
     }
 
-    // If no markers found, return the whole reply as a chat message
     if (markers.length === 0) {
         return [{ type: 'chat', content: reply.trim() }]
     }
@@ -187,7 +91,6 @@ function parseAIResponse(reply: string): ResponsePart[] {
         const type = markers[i].type as ResponsePart['type']
 
         if (type === 'scripture') {
-            // Try to extract source from scripture (e.g., "— Bhagavad Gita 2.47")
             const sourceMatch = content.match(/—\s*(.+?)$/m)
             const source = sourceMatch ? sourceMatch[1].trim() : undefined
             parts.push({ type, content, source })
@@ -199,11 +102,11 @@ function parseAIResponse(reply: string): ResponsePart[] {
     return parts.length > 0 ? parts : [{ type: 'chat', content: reply.trim() }]
 }
 
-// ─── Chat API (Groq) ──────────────────────────────────────────────────────────
+// ─── Chat API (Groq + Supabase RAG + Persistence) ──────────────────────────
 
 export async function POST(req: NextRequest) {
     try {
-        const { message, history, userName } = await req.json()
+        const { message, history, userName, conversationId } = await req.json()
 
         if (!message) {
             return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
@@ -212,101 +115,120 @@ export async function POST(req: NextRequest) {
         const apiKey = process.env.GROQ_API_KEY
         if (!apiKey) {
             return NextResponse.json(
-                { detail: 'Groq API key is not configured. Add GROQ_API_KEY to your .env.local file.' },
+                { detail: 'Groq API key is not configured.' },
                 { status: 500 }
             )
         }
 
-        // RAG: Find relevant scriptures
-        const scriptures = loadScriptures()
-        const relevant = findRelevantShloks(message, scriptures)
-
-        // Build context with relevant scripture
-        let scriptureContext = ''
-        if (relevant.length > 0) {
-            scriptureContext = '\n\nSCRIPTURAL ESSENCE FOR THIS MOMENT:\n'
-            for (const s of relevant) {
-                scriptureContext += `\n- ${s.source || s.id}: ${s.sanskrit} (Meaning: ${s.english})\n`
-            }
-            scriptureContext += '\nIntegrate these naturally into the [TEACHING] part if they serve our friend.'
+        // 🆔 Identity: Verify Token if provided
+        const authHeader = req.headers.get('authorization')
+        const token = authHeader?.replace('Bearer ', '')
+        let userId: string | null = null
+        
+        if (token) {
+            const { data: { user } } = await supabase.auth.getUser(token)
+            userId = user?.id || null
         }
 
-        // Count how many user messages have already been sent (excluding the current one)
-        const userMessageCount = history && Array.isArray(history)
-            ? history.filter((m: any) => m.type === 'user').length + 1
-            : 1
+        // 🔎 RAG: Find relevant scriptures
+        const keywords = message.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
+        const { data: scriptures } = await supabase.from('scriptures').select('*').limit(50)
 
-        // Build messages array for Groq (OpenAI-compatible format)
+        const relevant = (scriptures || []).map(s => {
+            let score = 0
+            const text = `${s.english} ${s.hindi} ${s.source} ${(s.themes || []).join(' ')}`.toLowerCase()
+            keywords.forEach((word: string) => { if (text.includes(word)) score += 1 })
+            return { ...s, score }
+        })
+        .filter(s => s.score > 0 || (scriptures && scriptures.length < 5))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+
+        let scriptureContext = ''
+        if (relevant.length > 0) {
+            scriptureContext = '\n\nSCRIPTURAL ESSENCE:\n'
+            for (const s of relevant) {
+                scriptureContext += `- ${s.source} ${s.chapter ? s.chapter + '.' + s.verse : ''}: ${s.sanskrit} (Meaning: ${s.english})\n`
+            }
+        }
+
+        const userMessageCount = history && Array.isArray(history) ? history.length + 1 : 1
         const messages: { role: string; content: string }[] = [
             { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount) + scriptureContext },
         ]
 
-        // Add history
         if (history && Array.isArray(history)) {
             for (const msg of history.slice(-10)) {
-                messages.push({
-                    role: msg.type === 'user' ? 'user' : 'assistant',
-                    content: msg.content,
-                })
+                messages.push({ role: msg.type === 'user' ? 'user' : 'assistant', content: msg.content })
+            }
+        }
+        messages.push({ role: 'user', content: message })
+
+        // 🤖 Call AI
+        const aiResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, temperature: 0.6 }),
+        })
+
+        const data = await aiResponse.json()
+        const reply = data.choices?.[0]?.message?.content
+
+        if (!reply) return NextResponse.json({ detail: 'No reflection generated.' }, { status: 500 })
+
+        // 💾 Persistence: Save to Supabase if user is logged in
+        let currentConvId = conversationId
+        let persistenceError = null
+
+        if (userId) {
+            console.log('User identified for persistence:', userId)
+            // Find or create conversation
+            if (!currentConvId) {
+                const { data: conv, error: convErr } = await supabaseAdmin.from('conversations').insert({
+                    user_id: userId,
+                    title: message.slice(0, 40) + (message.length > 40 ? '...' : '')
+                }).select().single()
+                
+                if (convErr) {
+                    console.error('Failed to create conversation:', convErr)
+                    persistenceError = { step: 'create_conv', ...convErr }
+                } else {
+                    currentConvId = conv?.id
+                    console.log('Created new conversation:', currentConvId)
+                }
+            }
+
+            if (currentConvId) {
+                // Save messages
+                const { error: msgErr } = await supabaseAdmin.from('messages').insert([
+                    { conversation_id: currentConvId, role: 'user', content: message },
+                    { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { scriptures: relevant.map(s => s.source) } }
+                ])
+                if (msgErr) {
+                    console.error('Failed to save messages:', msgErr)
+                    persistenceError = { step: 'save_msg', ...msgErr }
+                } else {
+                    console.log('Messages persisted successfully')
+                }
             }
         }
 
-        // Add current message
-        messages.push({ role: 'user', content: message })
-
-        // Call Groq API
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages,
-                temperature: 0.6,
-                top_p: 0.9,
-                max_tokens: 1200,
-            }),
-        })
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            console.error('Groq API error:', JSON.stringify(errorData, null, 2))
-            const errorMessage = errorData?.error?.message || 'Unknown error from Groq API'
-            return NextResponse.json(
-                { detail: `Groq API error (${response.status}): ${errorMessage}` },
-                { status: response.status === 429 ? 429 : 502 }
-            )
-        }
-
-        const data = await response.json()
-        const reply = data.choices?.[0]?.message?.content
-
-        if (!reply) {
-            return NextResponse.json(
-                { detail: 'No reflection was generated. Please try again.' },
-                { status: 500 }
-            )
-        }
-
-        // Parse the AI response into structured parts
-        let parts = parseAIResponse(reply)
-
-        // No more forced random injection here. 
-        // We trust the AI (guided by the improved SYSTEM_PROMPT) to use the shloks 
-        // provided in the context ONLY if they resonate.
-
         return NextResponse.json({
             reply,
-            parts,
-            scriptures_used: relevant.map(s => s.source || s.id),
+            parts: parseAIResponse(reply),
+            scriptures_used: relevant.map(s => s.source),
+            conversationId: currentConvId,
+            debug: {
+                userId,
+                persistenceError
+            }
         })
     } catch (err: any) {
         console.error('Chat API error:', err)
-        return NextResponse.json(
-            { detail: err.message || 'Something went wrong' },
-            { status: 500 }
-        )
+        return NextResponse.json({ 
+            detail: err.message || 'Something went wrong',
+            stack: err.stack 
+        }, { status: 500 })
     }
 }
+
