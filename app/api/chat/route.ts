@@ -189,19 +189,20 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
 
 // ─── AI Clients ─────────────────────────────────────────────────────────────
 
-const OLLAMA_URL   = process.env.OLLAMA_URL   || 'http://localhost:11434'
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'tatvam'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
 
-async function callGroq(messages: any[], apiKey: string, maxTokens = 1200): Promise<string | null> {
+async function callSarvam(messages: any[], apiKey: string, maxTokens = 1200): Promise<string | null> {
     try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            headers: {
+                'Content-Type': 'application/json',
+                'api-subscription-key': apiKey,
+            },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: 'sarvam-105b',
                 messages,
                 temperature: 0.6,
-                top_p: 0.9,
                 max_tokens: maxTokens,
             }),
         })
@@ -211,22 +212,22 @@ async function callGroq(messages: any[], apiKey: string, maxTokens = 1200): Prom
     } catch { return null }
 }
 
-async function callOllama(messages: any[]): Promise<string | null> {
+async function callLocalFastAPI(messages: any[]): Promise<string | null> {
     try {
-        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+        const res = await fetch(`${BACKEND_URL}/v1/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: OLLAMA_MODEL,
+                model: "tatvam-local",
                 messages,
-                stream: false,
-                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 250, num_ctx: 1024 },
+                temperature: 0.75,
+                max_tokens: 1024,
             }),
             signal: AbortSignal.timeout(60000),
         })
         if (!res.ok) return null
         const data = await res.json()
-        return data.message?.content?.trim() || null
+        return data.choices?.[0]?.message?.content?.trim() || null
     } catch { return null }
 }
 
@@ -280,7 +281,7 @@ export async function POST(req: NextRequest) {
         }
         messages.push({ role: 'user', content: message })
 
-        const groqKey = process.env.GROQ_API_KEY
+        const sarvamKey = process.env.SARVAM_API_KEY
         let reply: string | null = null
         let modelUsed = ''
 
@@ -289,15 +290,20 @@ export async function POST(req: NextRequest) {
                 { role: 'system', content: SMALL_TALK_PROMPT },
                 { role: 'user',   content: message },
             ]
-            if (groqKey) reply = await callGroq(smallMessages, groqKey, 120)
-            modelUsed = 'groq'
+            if (sarvamKey) reply = await callSarvam(smallMessages, sarvamKey, 120)
+            modelUsed = 'sarvam-105b'
         } else {
-            reply = await callOllama(messages)
-            modelUsed = 'ollama'
-            if (!reply && groqKey) {
-                console.log('Ollama unavailable, falling back to Groq...')
-                reply = await callGroq(messages, groqKey)
-                modelUsed = 'groq-fallback'
+            // First try Sarvam AI
+            if (sarvamKey) {
+                reply = await callSarvam(messages, sarvamKey)
+                modelUsed = 'sarvam-105b'
+            }
+            
+            // Fallback to local python FastApi if Sarvam fails
+            if (!reply) {
+                console.log('Sarvam unavailable, falling back to local Python Server...')
+                reply = await callLocalFastAPI(messages)
+                modelUsed = 'local-unsloth'
             }
         }
 
