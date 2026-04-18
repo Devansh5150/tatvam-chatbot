@@ -150,16 +150,44 @@ export default function PortalPage() {
     }
   }, [])
 
-  useEffect(() => { if (interimTranscript) setUserText(interimTranscript) }, [interimTranscript])
-  useEffect(() => { if (transcript) setUserText(transcript) }, [transcript])
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fullTranscriptRef = useRef('')
 
-  useEffect(() => {
-    if (transcript && transcript !== processedRef.current && statusRef.current === 'listening') {
-      processedRef.current = transcript
-      handleConversation(transcript)
-    }
+  // ── Live transcript display ──────────────────────────────────────────────
+  useEffect(() => { 
+    if (interimTranscript) {
+      setUserText(interimTranscript)
+      // Reset silence timer while user is still speaking (interim feedback)
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current)
+        silenceTimerRef.current = null
+      }
+    } 
+  }, [interimTranscript])
+
+  useEffect(() => { 
+    if (transcript && statusRef.current === 'listening') {
+      // Accumulate final segments
+      const newPart = transcript.trim()
+      if (newPart && !fullTranscriptRef.current.includes(newPart)) {
+        fullTranscriptRef.current = (fullTranscriptRef.current + ' ' + newPart).trim()
+      }
+      setUserText(fullTranscriptRef.current)
+
+      // Start/Reset silence timer
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
+      silenceTimerRef.current = setTimeout(() => {
+        if (fullTranscriptRef.current && statusRef.current === 'listening') {
+          const finalSpeech = fullTranscriptRef.current
+          fullTranscriptRef.current = ''
+          processedRef.current = finalSpeech
+          handleConversation(finalSpeech)
+        }
+      }, 1400) // 1.4s of silence to trigger
+    } 
   }, [transcript])
 
+  // ─── Sentence tracking ──────────────────────────────────────────────────
   const stopTracking = useCallback(() => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
   }, [])
@@ -323,6 +351,8 @@ export default function PortalPage() {
       stopTracking()
       setCurrentIdx(-1)
       setStatus('listening')
+      fullTranscriptRef.current = ''
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
       startListening(getSttLang())
     } else if (status === 'listening') {
       stopListening()
@@ -333,6 +363,8 @@ export default function PortalPage() {
       setCurrentIdx(-1)
       setApiError(null)
       setStatus('listening')
+      fullTranscriptRef.current = ''
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
       startListening(getSttLang())
     }
   }
@@ -391,10 +423,12 @@ export default function PortalPage() {
 
           <div className="w-full min-h-[100px] flex flex-col items-center justify-center gap-3 px-4 mt-1">
             <AnimatePresence mode="wait">
-              {(isListening || status === 'thinking') && userText && (
+              {(isListening || status === 'thinking' || status === 'speaking') && userText && (
                 <motion.div key="user-text" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="w-full text-center">
-                  <p className="text-white/30 text-[9px] uppercase tracking-widest mb-1">You said</p>
-                  <p className={`text-sm leading-relaxed ${status === 'thinking' ? 'text-white/45' : 'text-white/75'}`}>"{userText}"</p>
+                  <p className="text-white/20 text-[9px] uppercase tracking-[0.2em] mb-1">Your Question</p>
+                  <p className={`text-[13px] leading-relaxed ${status === 'listening' ? 'text-white/80' : 'text-white/55'} italic px-6`}>
+                    "{userText}"
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>

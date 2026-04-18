@@ -248,8 +248,8 @@ export async function POST(req: NextRequest) {
         }
 
         // RAG: skip for short greetings / small talk
-        const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i
-        const isSmallTalk = message.trim().split(/\s+/).length <= 4 || GREETINGS.test(message.trim())
+        const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho|sat sri akal|aadab|vanakkam|namaskaram|kem cho|khamma ghani|pranam)\b/i
+        const isSmallTalk = (message.trim().split(/\s+/).length <= 5 || GREETINGS.test(message.trim())) && language === 'en-IN'
 
         const scriptures = isSmallTalk ? [] : loadScriptures()
         const relevant   = isSmallTalk ? [] : findRelevantShloks(message, scriptures)
@@ -286,7 +286,7 @@ export async function POST(req: NextRequest) {
 
         if (isSmallTalk) {
             const smallMessages = [
-                { role: 'system', content: SMALL_TALK_PROMPT },
+                { role: 'system', content: SMALL_TALK_PROMPT + `\nRESPONSE LANGUAGE: ${language}. If not English, reply in ${language} script.` },
                 { role: 'user',   content: message },
             ]
             if (groqKey) reply = await callGroq(smallMessages, groqKey, 120)

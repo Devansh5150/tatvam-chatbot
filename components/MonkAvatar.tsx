@@ -18,12 +18,8 @@ const AURA_COLOR: Record<PortalState, string> = {
 }
 
 // Primitive transform — applied to the <primitive> tag.
-// World = (-m.x * 10 + 0,  m.y * 10 - 3.6,  -m.z * 10 + 0.5)
 const PRIM_SCALE = 10
 const PRIM_POS   = new THREE.Vector3(0, -3.6, 0.5)
-function m2w(mx: number, my: number, mz: number): THREE.Vector3 {
-  return new THREE.Vector3(-mx * PRIM_SCALE + PRIM_POS.x, my * PRIM_SCALE + PRIM_POS.y, -mz * PRIM_SCALE + PRIM_POS.z)
-}
 
 // ── Wave ring ─────────────────────────────────────────────────────────────
 function WaveRing({ phase, state }: { phase: number; state: PortalState }) {
@@ -49,34 +45,48 @@ function WaveRing({ phase, state }: { phase: number; state: PortalState }) {
 function EldritchMandala({ state }: { state: PortalState }) {
   const ring1 = useRef<THREE.Mesh>(null)
   const ring2 = useRef<THREE.Mesh>(null)
+  const dot   = useRef<THREE.Mesh>(null)
   const tex   = useTexture('/textures/mandala.png')
-  const gold  = new THREE.Color('#FF8C00')
-  useFrame(({ clock }) => {
+  
+  const targetColor  = useRef(new THREE.Color(AURA_COLOR.idle))
+  const currentColor = useRef(new THREE.Color(AURA_COLOR.idle))
+
+  useFrame(({ clock }, dt) => {
     const t = clock.getElapsedTime()
+    
+    targetColor.current.set(AURA_COLOR[state])
+    currentColor.current.lerp(targetColor.current, dt * 3)
+
     if (ring1.current) {
-      ring1.current.rotation.z = t * 0.15
-      ;(ring1.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        (state === 'speaking' ? 8 : 4) + Math.sin(t * 20) * 1.5
+      ring1.current.rotation.z = t * 0.08
+      const mat = ring1.current.material as THREE.MeshStandardMaterial
+      mat.emissive.copy(currentColor.current)
+      mat.emissiveIntensity = (state === 'speaking' ? 8 : 4) + Math.sin(t * 4) * 1.5
     }
     if (ring2.current) {
-      ring2.current.rotation.z = -t * 0.25
-      ;(ring2.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        (state === 'speaking' ? 6 : 3) + Math.cos(t * 25) * 1.2
+      ring2.current.rotation.z = -t * 0.12
+      const mat = ring2.current.material as THREE.MeshStandardMaterial
+      mat.emissive.copy(currentColor.current)
+      mat.emissiveIntensity = (state === 'speaking' ? 6 : 3) + Math.cos(t * 3) * 1.2
+    }
+    if (dot.current) {
+      const mat = dot.current.material as THREE.MeshStandardMaterial
+      mat.emissive.copy(currentColor.current)
     }
   })
   return (
     <group position={[0, 0.55, -0.6]}>
       <mesh ref={ring1}>
         <ringGeometry args={[1.7, 2.0, 64]} />
-        <meshStandardMaterial map={tex} transparent alphaMap={tex} emissive={gold} emissiveIntensity={4} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={tex} transparent alphaMap={tex} emissiveIntensity={4} side={THREE.DoubleSide} />
       </mesh>
       <mesh ref={ring2}>
         <ringGeometry args={[1.3, 1.6, 64]} />
-        <meshStandardMaterial map={tex} transparent alphaMap={tex} emissive={gold} emissiveIntensity={3} side={THREE.DoubleSide} />
+        <meshStandardMaterial map={tex} transparent alphaMap={tex} emissiveIntensity={3} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[0, 0, -0.1]}>
+      <mesh ref={dot} position={[0, 0, -0.1]}>
         <circleGeometry args={[0.05, 32]} />
-        <meshStandardMaterial emissive={gold} emissiveIntensity={15} />
+        <meshStandardMaterial emissiveIntensity={15} />
       </mesh>
     </group>
   )
@@ -95,16 +105,10 @@ function MonkMesh({ state }: { state: PortalState }) {
   const eyeMeshRef     = useRef<THREE.Mesh | null>(null)
   const eyeMorphIdxs   = useRef<number[]>([])
 
-  // ── Procedural overlay refs (work on ALL models, including voxel) ──────
+  // ── Procedural overlay refs ──────────────────────────────────────────
   // Jaw: a single scene-mesh found by position, animated by Y translate
   const jawMeshRef     = useRef<THREE.Object3D | null>(null)
   const jawRestY       = useRef(0)
-  // Eyelid planes added imperatively — cover the eye area each blink
-  const lidLRef        = useRef<THREE.Mesh | null>(null)
-  const lidRRef        = useRef<THREE.Mesh | null>(null)
-  // Neck muscle cylinders added imperatively
-  const muscLRef       = useRef<THREE.Mesh | null>(null)
-  const muscRRef       = useRef<THREE.Mesh | null>(null)
 
   // ── Blink state machine ────────────────────────────────────────────────
   const blink = useRef({ next: 1.5 + Math.random() * 2, phase: 0 as 0|1|2, val: 0 })
@@ -167,31 +171,9 @@ function MonkMesh({ state }: { state: PortalState }) {
           THREE.MathUtils.lerp(eyeMeshRef.current.morphTargetInfluences[idx], bs.val, dt * 22)
       }
     }
-
-    // Apply via eyelid overlay planes (always — works on voxel models)
-    if (lidLRef.current) {
-      lidLRef.current.scale.y = THREE.MathUtils.lerp(lidLRef.current.scale.y, 1 - bs.val * 0.9, dt * 22)
-      lidRRef.current!.scale.y = lidLRef.current.scale.y
-    }
-
-    // ── Neck muscles ─────────────────────────────────────────────────
-    if (muscLRef.current && muscRRef.current) {
-      // Pulse thickness on each speech beat
-      const pump = state === 'speaking'
-        ? 1.0 + Math.max(0, Math.sin(t * 9.3) * 0.22 + Math.sin(t * 5.1) * 0.1)
-        : 0.85
-      for (const m of [muscLRef.current, muscRRef.current]) {
-        m.scale.x = THREE.MathUtils.lerp(m.scale.x, pump, dt * 7)
-        m.scale.z = THREE.MathUtils.lerp(m.scale.z, pump, dt * 7)
-      }
-      // Subtle lateral tension during speech
-      const tense = state === 'speaking' ? Math.sin(t * 3.7) * 0.025 : 0
-      muscLRef.current.rotation.z = THREE.MathUtils.lerp(muscLRef.current.rotation.z, 0.22 + tense, dt * 4)
-      muscRRef.current.rotation.z = THREE.MathUtils.lerp(muscRRef.current.rotation.z, -0.22 - tense, dt * 4)
-    }
   })
 
-  // ── Scene setup: detect morph/bones AND add procedural overlays ────────
+  // ── Scene setup: detect morph/bones ────────────────────────────────────
   useEffect(() => {
     if (!groupRef.current) return
 
@@ -224,101 +206,27 @@ function MonkMesh({ state }: { state: PortalState }) {
       }
     })
 
-    // ── Pass 2: compute scene bounds in MODEL space ────────────────────
-    // Box3.setFromObject works in world space — but the scene hasn't been
-    // transformed yet (it's the raw GLB). So this IS model space.
-    const box  = new THREE.Box3().setFromObject(scene)
-    const size = box.getSize(new THREE.Vector3())
-    const cen  = box.getCenter(new THREE.Vector3())
-
-    // Convert key landmark positions to group (world) space using m2w()
-    // Face FRONT: in the GLB the face usually faces +Z → modelBox.max.z is the front face depth.
-    // After rotation [0,π,0]: world_z = -model_z * 10 + 0.5
-    // So world_z of face front = -box.max.z * 10 + 0.5  (smaller z = further from camera which is at z=6)
-    // Overlays placed "in front" from camera = larger z (closer to camera at z=6) = face_z + 0.1 to 0.4
-
-    const faceZ_world = m2w(0, 0, box.max.z).z          // world z of face surface
-    const overlayZ    = faceZ_world + 0.14               // slightly in front (toward camera)
-
-    const headTopY    = m2w(0, box.max.y, 0).y
-    const headH       = size.y * PRIM_SCALE               // head+body height in world units
-
-    // Eye Y: 15% below head top, narrow horizontal span
-    const eyeY       = headTopY - headH * 0.14
-    const eyeSpanX   = size.x * PRIM_SCALE * 0.22        // half-distance between eyes
-
-    // Mouth / jaw Y: 28% below head top
-    const mouthY     = headTopY - headH * 0.27
-
-    // Neck Y: 38% below head top
-    const neckY      = headTopY - headH * 0.38
-    const neckSpanX  = size.x * PRIM_SCALE * 0.18        // half-distance of neck muscles
-
-    // Lid size proportional to model
-    const lidW = size.x * PRIM_SCALE * 0.14
-    const lidH = size.y * PRIM_SCALE * 0.045
-
-    // ── Pass 3: find jaw mesh by position (lowest face mesh) ───────────
-    // Only if no bone/morph jaw found
+    // ── Pass 2: find jaw mesh by position (lowest face mesh) ───────────
     if (!jawBoneRef.current && !mouthMeshRef.current) {
+      const box  = new THREE.Box3().setFromObject(scene)
+      const size = box.getSize(new THREE.Vector3())
+      const cen  = box.getCenter(new THREE.Vector3())
+      const headTopY = box.max.y
+      const headH = size.y
+      const mouthY_model = headTopY - headH * 0.27
+
       let best: THREE.Object3D | null = null
       let bestDist = Infinity
       scene.traverse((child) => {
         if (!(child as THREE.Mesh).isMesh) return
         const b2 = new THREE.Box3().setFromObject(child)
         const cy  = b2.getCenter(new THREE.Vector3()).y
-        // We want the mesh whose center is near mouthY (in model space)
-        const mouthY_model = (mouthY - PRIM_POS.y) / PRIM_SCALE
         const dist = Math.abs(cy - mouthY_model)
-        // Only consider meshes in upper half (face area)
         if (cy > cen.y && dist < bestDist) { bestDist = dist; best = child as THREE.Object3D }
       })
       if (best && bestDist < size.y * 0.12) {
         jawMeshRef.current = best
         jawRestY.current   = (best as THREE.Object3D).position.y
-      }
-    }
-
-    // ── Pass 4: add procedural overlay meshes to the group ─────────────
-    const skinColor = new THREE.Color(0xC8855A)  // warm tan matching voxel skin
-
-    // Eyelid L
-    const lidGeo = new THREE.BoxGeometry(lidW, lidH, 0.01)
-    const lidMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.7, metalness: 0.0, depthTest: true })
-    const lL = new THREE.Mesh(lidGeo, lidMat)
-    lL.position.set(-eyeSpanX, eyeY, overlayZ)
-    groupRef.current.add(lL)
-    lidLRef.current = lL
-
-    // Eyelid R
-    const lR = new THREE.Mesh(lidGeo, lidMat.clone())
-    lR.position.set(eyeSpanX, eyeY, overlayZ)
-    groupRef.current.add(lR)
-    lidRRef.current = lR
-
-    // Neck muscle L (sternocleidomastoid shape)
-    const muscLen = headH * 0.13
-    const mGeo    = new THREE.CylinderGeometry(0.010, 0.016, muscLen, 10)
-    const mMat    = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.72, metalness: 0.0 })
-    const mL      = new THREE.Mesh(mGeo, mMat)
-    mL.position.set(-neckSpanX, neckY, overlayZ + 0.1)
-    mL.rotation.set(-0.08, 0.06, 0.22)
-    groupRef.current.add(mL)
-    muscLRef.current = mL
-
-    // Neck muscle R
-    const mR = new THREE.Mesh(mGeo, mMat.clone())
-    mR.position.set(neckSpanX, neckY, overlayZ + 0.1)
-    mR.rotation.set(-0.08, -0.06, -0.22)
-    groupRef.current.add(mR)
-    muscRRef.current = mR
-
-    // Cleanup on unmount
-    return () => {
-      for (const m of [lL, lR, mL, mR]) {
-        groupRef.current?.remove(m)
-        m.geometry.dispose()
-        ;(m.material as THREE.Material).dispose()
       }
     }
   }, [scene])
@@ -385,7 +293,10 @@ export default function MonkAvatar({ state, onClick }: { state: PortalState; onC
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle at center, transparent 35%, rgba(8,7,6,0.9) 75%, rgba(0,0,0,1) 100%)',
+          background: `
+            radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.8) 100%),
+            linear-gradient(to top, black 0%, transparent 25%)
+          `,
         }}
       />
     </div>

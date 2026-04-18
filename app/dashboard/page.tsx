@@ -591,8 +591,10 @@ function MessageBubble({ message }: { message: Message }) {
     if (message.type === 'user') {
         return (
             <div className="flex justify-end mb-6">
-                <div className="max-w-xl bg-primary rounded-2xl rounded-br-sm px-6 py-4 shadow-sm border border-primary/20">
-                    <p className="text-primary-foreground font-sans text-base leading-relaxed font-medium">{message.content}</p>
+                <div className="max-w-xl bg-primary shadow-md rounded-2xl rounded-br-sm px-6 py-4 border border-primary/20">
+                    <p className="text-primary-foreground/90 font-sans text-base leading-relaxed font-semibold">
+                        {message.content}
+                    </p>
                 </div>
             </div>
         )
