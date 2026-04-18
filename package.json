@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "concurrently \"npm run dev:next\" \"npm run dev:backend\"",
     "dev:next": "next dev",
-    "dev:backend": "cd backend && python main.py",
+    "dev:backend": "python server.py",
     "lint": "eslint .",
     "start": "next start"
   },

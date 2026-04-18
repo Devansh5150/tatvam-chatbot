@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
     try {
@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
             )
         }
 
-        // 2. Fetch profile details (to get the name)
-        const { data: profile } = await supabase
+        // 2. Fetch profile details using Admin client (bypasses RLS)
+        const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('name')
             .eq('id', user.id)

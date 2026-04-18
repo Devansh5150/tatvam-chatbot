@@ -13,8 +13,8 @@ export default function ProfilePage() {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
+        const token = localStorage.getItem('tatvam_token')
         const userStr = localStorage.getItem('tatvam_user')
-        const convStr = localStorage.getItem('tatvam_conversations')
 
         if (userStr) {
             try {
@@ -24,16 +24,23 @@ export default function ProfilePage() {
             } catch (e) { console.error(e) }
         }
 
-        if (convStr) {
+        const fetchStats = async () => {
+            if (!token) return
             try {
-                const convs = JSON.parse(convStr)
-                setStats({
-                    totalReflections: convs.reduce((acc: number, c: any) => acc + c.messages.filter((m: any) => m.type === 'user').length, 0),
-                    daysActive: 1 // Simplified for now
+                const response = await fetch('/api/conversations', {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 })
-            } catch (e) { console.error(e) }
+                if (response.ok) {
+                    const convs = await response.json()
+                    setStats({
+                        totalReflections: convs.reduce((acc: number, c: any) => acc + (c.messages || []).filter((m: any) => m.type === 'user').length, 0),
+                        daysActive: 1 // Simplified for now
+                    })
+                }
+            } catch (e) { console.error('Error fetching stats:', e) }
         }
 
+        fetchStats()
         setRemaining(getRemainingMessages())
         setIsLoading(false)
     }, [])

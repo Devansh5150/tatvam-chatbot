@@ -378,7 +378,9 @@ function HistoryPanel({
     onClose: () => void; 
     conversations: Conversation[]; 
     activeId: string | null; 
-    onSelect: (id: string) => void 
+    onSelect: (id: string) => void;
+    onRemove?: (id: string) => void;
+    onNew?: () => void
 }) {
     return (
         <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
@@ -392,6 +394,16 @@ function HistoryPanel({
                 </button>
             </div>
 
+            <div className="px-4 py-3 border-b border-border">
+                <button 
+                    onClick={() => { onNew && onNew() }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-accent-foreground rounded-xl font-sans text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14"/></svg>
+                    New Reflection
+                </button>
+            </div>
+
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
                 {conversations.length === 0 ? (
                     <div className="text-center py-10">
@@ -399,22 +411,29 @@ function HistoryPanel({
                     </div>
                 ) : (
                     conversations.map((c) => (
-                        <button
-                            key={c.id}
-                            onClick={() => onSelect(c.id)}
-                            className={`w-full text-left px-4 py-3 rounded-2xl border transition-all ${
-                                activeId === c.id
-                                    ? 'border-accent/40 bg-accent/5'
-                                    : 'border-border hover:border-accent/20 hover:bg-muted'
-                            }`}
-                        >
-                            <p className={`text-sm font-sans font-medium truncate ${activeId === c.id ? 'text-accent' : 'text-foreground'}`}>
-                                {c.title || 'Untitled Reflection'}
-                            </p>
-                            <p className="text-muted-foreground text-[10px] font-sans mt-0.5">
-                                {new Date(c.updatedAt).toLocaleDateString()}
-                            </p>
-                        </button>
+                        <div key={c.id} className="group relative">
+                            <button
+                                onClick={() => onSelect(c.id)}
+                                className={`w-full text-left px-4 py-3 rounded-2xl border transition-all ${
+                                    activeId === c.id
+                                        ? 'border-accent/40 bg-accent/5'
+                                        : 'border-border hover:border-accent/20 hover:bg-muted'
+                                }`}
+                            >
+                                <p className={`text-sm font-sans font-medium truncate pr-6 ${activeId === c.id ? 'text-accent' : 'text-foreground'}`}>
+                                    {c.title || 'Untitled Reflection'}
+                                </p>
+                                <p className="text-muted-foreground text-[10px] font-sans mt-0.5">
+                                    {new Date(c.updatedAt).toLocaleDateString()}
+                                </p>
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onRemove && onRemove(c.id) }}
+                                className="absolute right-3 top-3.5 p-1 text-muted-foreground/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
                     ))
                 )}
             </div>
@@ -566,8 +585,8 @@ function MessageBubble({ message }: { message: Message }) {
     if (message.type === 'user') {
         return (
             <div className="flex justify-end mb-6">
-                <div className="max-w-xl bg-muted rounded-2xl rounded-br-sm px-6 py-4 shadow-sm border border-border">
-                    <p className="text-foreground font-sans text-base leading-relaxed">{message.content}</p>
+                <div className="max-w-xl bg-primary rounded-2xl rounded-br-sm px-6 py-4 shadow-sm border border-primary/20">
+                    <p className="text-primary-foreground font-sans text-base leading-relaxed font-medium">{message.content}</p>
                 </div>
             </div>
         )
@@ -830,17 +849,24 @@ export default function DashboardPage() {
     }, [messages])
 
     const loadDailyReflection = () => {
-        // If we already have conversations loaded, don't auto-create one
-        if (conversations.length > 0) return
+        // Only auto-load if no conversation is active and no history exists
+        if (conversations.length > 0 || activeConversationId) return
+        startNewReflection('daily')
+    }
 
-        const dayIndex = new Date().getDate() % DAILY_SHLOKS.length
+    const startNewReflection = async (type: 'daily' | 'random' = 'daily') => {
+        setIsThinking(true)
+        const dayIndex = type === 'daily' 
+            ? new Date().getDate() % DAILY_SHLOKS.length 
+            : Math.floor(Math.random() * DAILY_SHLOKS.length)
+        
         const shlok = DAILY_SHLOKS[dayIndex]
 
         const initialMessages: Message[] = [
             {
                 id: '1',
                 type: 'system',
-                content: `Namaste. Here is today's reflection for you.`,
+                content: type === 'daily' ? `Namaste. Here is today's reflection for you.` : 'A new reflection has been drawn for you.',
                 timestamp: new Date(),
             },
             {
@@ -865,62 +891,56 @@ export default function DashboardPage() {
             },
         ]
 
-        const newConv: Conversation = {
-            id: 'initial-' + Date.now(),
-            title: "Today's Reflection",
-            messages: initialMessages,
-            updatedAt: Date.now()
+        try {
+            const token = localStorage.getItem('tatvam_token')
+            if (token) {
+                const response = await fetch('/api/conversations', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        title: type === 'daily' ? "Daily Reflection" : "New Reflection"
+                    })
+                })
+                
+                if (response.ok) {
+                    const dbConv = await response.json()
+                    const newConv: Conversation = {
+                        ...dbConv,
+                        messages: initialMessages,
+                        updatedAt: Date.now()
+                    }
+                    setConversations(prev => [newConv, ...prev])
+                    setActiveConversationId(dbConv.id)
+                    setMessages(initialMessages)
+                    setIsThinking(false)
+                    return
+                }
+            }
+        } catch (e) {
+            console.error('Failed to persist new conversation:', e)
         }
 
-        setConversations([newConv])
-        setActiveConversationId(newConv.id)
-        setMessages(initialMessages)
-    }
-
-    const handleNewReflection = () => {
-        const randomIndex = Math.floor(Math.random() * DAILY_SHLOKS.length)
-        const shlok = DAILY_SHLOKS[randomIndex]
-
-        const newMessages: Message[] = [
-            {
-                id: Date.now().toString(),
-                type: 'system',
-                content: 'A new reflection has been drawn for you.',
-                timestamp: new Date(),
-            },
-            {
-                id: (Date.now() + 1).toString(),
-                type: 'shlok',
-                content: shlok.sanskrit,
-                subContent: shlok.hindi,
-                source: shlok.source,
-                timestamp: new Date(),
-            },
-            {
-                id: (Date.now() + 2).toString(),
-                type: 'meaning',
-                content: shlok.english,
-                timestamp: new Date(),
-            },
-            {
-                id: (Date.now() + 3).toString(),
-                type: 'reflection',
-                content: shlok.reflection,
-                timestamp: new Date(),
-            },
-        ]
-
-        const newConvId = 'conv-' + Date.now()
+        // Fallback for non-auth or failure
+        const newConvId = 'initial-' + Date.now()
         const newConv: Conversation = {
             id: newConvId,
-            title: 'New Reflection',
-            messages: newMessages,
+            title: type === 'daily' ? "Daily Reflection" : "New Reflection",
+            messages: initialMessages,
             updatedAt: Date.now()
         }
 
         setConversations(prev => [newConv, ...prev])
         setActiveConversationId(newConvId)
-        setMessages(newMessages)
+        setMessages(initialMessages)
+        setIsThinking(false)
+    }
+
+    // Keep handleNewReflection for legacy buttons (redirect to startNewReflection)
+    const handleNewReflection = () => {
+        startNewReflection('random')
     }
 
     const handleSend = async () => {
@@ -1051,10 +1071,45 @@ export default function DashboardPage() {
         }
     }
 
+    const handleRemoveConversation = async (id: string) => {
+        const token = localStorage.getItem('tatvam_token')
+        if (!token) return
+
+        if (confirm('Are you sure you want to let go of this reflection?')) {
+            try {
+                const response = await fetch('/api/conversations', {
+                    method: 'DELETE',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ id })
+                })
+                if (response.ok) {
+                    setConversations(prev => prev.filter(c => c.id !== id))
+                    if (activeConversationId === id) {
+                        setActiveConversationId(null)
+                        setMessages([])
+                    }
+                }
+            } catch (e) {
+                console.error('Delete error:', e)
+            }
+        }
+    }
+
+    const handleNewChat = () => {
+        startNewReflection('daily')
+        setActivePanel(null)
+    }
+
 
     const handleLogout = () => {
         localStorage.removeItem('tatvam_token')
         localStorage.removeItem('tatvam_user')
+        localStorage.removeItem('tatvam_active_bhajan_src')
+        localStorage.removeItem('tatvam_volume')
+        localStorage.removeItem('tatvam_message_timestamps')
         window.location.href = '/'
     }
 
@@ -1100,6 +1155,8 @@ export default function DashboardPage() {
                                     setActiveConversationId(id)
                                     setActivePanel(null)
                                 }}
+                                onRemove={handleRemoveConversation}
+                                onNew={handleNewChat}
                             />
                         </motion.div>
                     )}
@@ -1213,7 +1270,7 @@ export default function DashboardPage() {
                                     ))}
                                     {isThinking && (
                                         <div className="mb-10">
-                                            <div className="max-w-md bg-white border border-[#EFEFEF] shadow-sm rounded-2xl rounded-bl-md px-8 py-6">
+                                            <div className="max-w-md bg-card border border-border shadow-sm rounded-2xl rounded-bl-md px-8 py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative">
                                                         <div className="w-3 h-3 bg-accent/40 rounded-full animate-ping absolute inset-0" />
@@ -1236,17 +1293,17 @@ export default function DashboardPage() {
                     <div className="px-6 md:px-12 lg:px-24 pb-8 pt-4">
                         <div className="max-w-[800px] mx-auto relative group">
 
-                            <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-zinc-300 transition-colors relative z-50">
+                    <div className="flex items-center gap-3 bg-card border border-border rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-accent/30 transition-colors relative z-50">
 
-                                <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder="Ask me anything..."
-                                    disabled={isThinking}
-                                    className="flex-1 bg-transparent text-zinc-800 placeholder-zinc-400 focus:outline-none text-base font-sans disabled:opacity-50 min-h-[44px]"
-                                />
+                        <input
+                            type="text"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                            placeholder="Ask me anything..."
+                            disabled={isThinking}
+                            className="flex-1 bg-transparent text-foreground placeholder-muted-foreground focus:outline-none text-base font-sans disabled:opacity-50 min-h-[44px]"
+                        />
                                 <button
                                     onClick={handleSend}
                                     disabled={!inputValue.trim() || isThinking}

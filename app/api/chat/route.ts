@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 
         // 🔎 RAG: Find relevant scriptures
         const keywords = message.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
-        const { data: scriptures } = await supabase.from('scriptures').select('*').limit(50)
+        const { data: scriptures } = await supabaseAdmin.from('scriptures').select('*').limit(50)
 
         const relevant = (scriptures || []).map(s => {
             let score = 0
@@ -152,17 +152,38 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const userMessageCount = history && Array.isArray(history) ? history.length + 1 : 1
-        const messages: { role: string; content: string }[] = [
-            { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount) + scriptureContext },
-        ]
+        // 🧠 History Logic: Get context for the LLM
+        let chatContext: { role: string; content: string }[] = []
 
-        if (history && Array.isArray(history)) {
-            for (const msg of history.slice(-10)) {
-                messages.push({ role: msg.type === 'user' ? 'user' : 'assistant', content: msg.content })
+        if (history && Array.isArray(history) && history.length > 0) {
+            // Use history from frontend if provided
+            chatContext = history.map(msg => ({ 
+                role: msg.type === 'user' ? 'user' : 'assistant', 
+                content: msg.content 
+            })).slice(-10)
+        } else if (conversationId && !conversationId.startsWith('initial')) {
+            // Fetch history from DB if frontend didn't provide it but we have a Conversation ID
+            const { data: dbMessages } = await supabaseAdmin
+                .from('messages')
+                .select('role, content')
+                .eq('conversation_id', conversationId)
+                .order('created_at', { ascending: false })
+                .limit(10)
+            
+            if (dbMessages) {
+                chatContext = dbMessages.reverse().map(m => ({
+                    role: m.role,
+                    content: m.content
+                }))
             }
         }
-        messages.push({ role: 'user', content: message })
+
+        const userMessageCount = chatContext.length + 1
+        const messages: { role: string; content: string }[] = [
+            { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount) + scriptureContext },
+            ...chatContext,
+            { role: 'user', content: message }
+        ]
 
         // 🤖 Call AI
         const aiResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
