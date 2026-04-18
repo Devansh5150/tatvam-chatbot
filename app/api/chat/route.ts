@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,47 +17,127 @@ interface Shlok {
     verse?: number
 }
 
-// ─── Sacred System Prompt ─────────────────────────────────────────────────────
+function loadScriptures(): Shlok[] {
+    try {
+        const path = join(process.cwd(), 'data', 'scriptures.json')
+        const raw = readFileSync(path, 'utf-8')
+        const db = JSON.parse(raw)
+        return [
+            ...db.gita.map((s: any) => ({ ...s, source: `Bhagavad Gita ${s.chapter}.${s.verse}` })),
+            ...db.ramayana,
+            ...db.mahabharata,
+        ]
+    } catch {
+        return []
+    }
+}
 
-const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1) => `You are Tatvam — a wise, warm spiritual companion rooted in Indian scripture.
+function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 5): Shlok[] {
+    const queryLower = query.toLowerCase()
+    const words = queryLower.split(/\s+/)
 
-The person speaking with you is ${userName}. Use their name naturally.
+    // Emotional synonyms / related concepts
+    const synonymMap: Record<string, string[]> = {
+        'sad': ['grief', 'loss', 'sorrow', 'pain', 'unhappy', 'lonely', 'broken', 'cry', 'depressed', 'rama', 'sita', 'exile'],
+        'lonely': ['alone', 'solitude', 'presence', 'isolated', 'connection', 'vanvas', 'forest'],
+        'angry': ['anger', 'rage', 'frustration', 'irritation', 'conflict', 'resentment', 'ravana', 'duryodhana', 'krodha'],
+        'scared': ['fear', 'anxiety', 'worry', 'doubt', 'uncertainty', 'stress', 'panic', 'arjuna', 'kurukshetra', 'bhaya'],
+        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction', 'arjuna', 'dharma', 'moha'],
+        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity', 'shanti', 'samadhi'],
+        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job', 'nishkama', 'dharma'],
+        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego', 'radha', 'krishna', 'prema'],
+        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying', 'nachiketa', 'yama', 'mrityu', 'atman'],
+        'courage': ['bravery', 'strength', 'hanuman', 'arjuna', 'warrior', 'shakti', 'veer'],
+        'duty': ['dharma', 'responsibility', 'obligation', 'karma', 'bhishma', 'yudhishthira', 'rama'],
+        'pride': ['ego', 'arrogance', 'ahankara', 'ravana', 'duryodhana', 'hubris'],
+        'surrender': ['bhakti', 'sharanagati', 'trust', 'faith', 'devotion', 'prahlad', 'gopi'],
+        'purpose': ['meaning', 'dharma', 'path', 'direction', 'calling', 'svadharma', 'mission'],
+        'injustice': ['unfair', 'wrong', 'cheated', 'betrayed', 'draupadi', 'karna', 'adharma'],
+        'grief': ['sorrow', 'mourning', 'loss', 'bereavement', 'shoka', 'rama', 'pandava'],
+    }
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONVERSATION RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Expand query with synonyms
+    let expandedQuery = queryLower
+    for (const [key, synonyms] of Object.entries(synonymMap)) {
+        if (queryLower.includes(key)) {
+            expandedQuery += ' ' + synonyms.join(' ')
+        }
+        if (synonyms.some(s => queryLower.includes(s))) {
+            expandedQuery += ' ' + key
+        }
+    }
 
-1. DEPTH-BASED WISDOM:
-   - IF the conversation is just starting (Message ${userMessageCount} < 3) and the user's needs are light:
-     Focus on listening, empathy, and asking gentle follow-up questions to understand their context better.
-   - IF the user shares a significant struggle, crisis, or asks for wisdom (even on Message 1):
-     You MAY share a shlok immediately if you find one that fits perfectly.
-   - IF userMessageCount >= 3: 
-     Transition into sharing scriptural wisdom more consistently.
+    const scored = scriptures.map(shlok => {
+        let score = 0
+        const themes = shlok.themes.map(t => t.toLowerCase())
 
-2. SHLOK USAGE:
-   - ONLY use a shlok if it truly resonates with what ${userName} shared. If none of the provided shloks fit, focus on pure empathy and wait for a better moment.
-   - Quality of resonance is more important than providing scripture in every message.
+        for (const theme of themes) {
+            if (queryLower.includes(theme)) score += 20 
+            else if (expandedQuery.includes(theme)) score += 8
+        }
 
-3. RESPONSE STRUCTURE:
-   When sharing scripture, use these exact markers:
-   [CHAT] A brief warm response connecting to their situation.
-   [SCRIPTURE] The Sanskrit shlok + Source (e.g., Bhagavad Gita 2.47)
-   [TEACHING] Explain the meaning deeply and personally for ${userName}.
-   [GUIDANCE] One gentle, open question to carry forward.
+        for (const word of words) {
+            if (word.length < 3) continue
+            for (const theme of themes) {
+                if (theme.includes(word) || word.includes(theme)) score += 5
+            }
+        }
 
-   If NOT sharing scripture, use only:
-   [CHAT] Your warm, empathetic response.
+        const englishLower = shlok.english.toLowerCase()
+        if (words.some(w => w.length > 3 && englishLower.includes(w))) score += 5
 
-4. MULTILINGUAL GRACE:
-   - If ${userName} speaks in Hindi or Sanskrit, reciprocate with the same warmth and depth in that language. You are fluent and grounded in both.
+        const matchingThemes = themes.filter(t => queryLower.includes(t))
+        if (matchingThemes.length > 1) score += (matchingThemes.length * 5)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        if (shlok.id.startsWith('gita')) score += 2
 
-TONE: Warm, grounded, non-preachy. Like a trusted elder who has lived through much. 
-FORMAT RULES: NO EMOJIS. No lists. No bullet points.`
+        return { shlok, score }
+    })
 
-// ─── Response Parser ──────────────────────────────────────────────────────────
+    const candidates = scored
+        .filter(s => s.score >= 10) 
+        .sort((a, b) => b.score - a.score)
+
+    return candidates.slice(0, count).map(s => s.shlok)
+}
+
+// ─── Prompts ──────────────────────────────────────────────────────────────────
+
+const SMALL_TALK_PROMPT = `You are Tatvam — a warm, wise spiritual companion.
+The seeker has just greeted you or sent a very casual message.
+Reply in ONE warm sentence — friendly, human, and slightly poetic.
+No scripture. No sections. No markers. No lists. Just one natural, welcoming sentence.`
+
+const LANG_INSTRUCTION: Record<string, string> = {
+  'hi-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Hindi. Write the [HINDI_REPLY] in full, rich, flowing Hindi with Sanskrit shlokas woven naturally. The [ENGLISH_REPLY] can be brief.',
+  'hinglish':'\nLANGUAGE INSTRUCTION: The seeker is speaking Hinglish. Write the [ENGLISH_REPLY] in natural Hinglish — mix Hindi and English words fluidly. The [HINDI_REPLY] in pure Hindi.',
+  'sa':      '\nLANGUAGE INSTRUCTION: The seeker wishes to hear the ancient tongue. Write the [ENGLISH_REPLY] predominantly in Sanskrit (Devanagari script) with an English translation woven in. Lean into classical Sanskrit shlokas and their meanings. The [HINDI_REPLY] can be in Sanskrit-influenced Hindi.',
+  'pa-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Punjabi. Write the [HINDI_REPLY] entirely in Punjabi (Gurmukhi script). The [ENGLISH_REPLY] can remain in Indian English.',
+  'gu-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Gujarati. Write the [HINDI_REPLY] entirely in Gujarati script. The [ENGLISH_REPLY] can remain in Indian English.',
+  'ta-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Tamil. Write the [HINDI_REPLY] entirely in Tamil script. The [ENGLISH_REPLY] can remain in Indian English.',
+  'mr-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Marathi. Write the [HINDI_REPLY] entirely in Marathi (Devanagari). The [ENGLISH_REPLY] can remain in Indian English.',
+  'bn-IN':   '\nLANGUAGE INSTRUCTION: The seeker is speaking Bengali. Write the [HINDI_REPLY] entirely in Bengali (Bangla script). The [ENGLISH_REPLY] can remain in Indian English.',
+}
+
+const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1, language: string = 'en-IN') => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama.
+
+The person speaking with you is ${userName}. Address them as a seeker.
+
+RESPONSE STRUCTURE — you MUST always produce BOTH an English reply and a Hindi reply, using these exact markers:
+
+[ENGLISH_REPLY]
+[CHAT] A warm response.
+[SCRIPTURE] The Sanskrit shlok + Source.
+[TEACHING] The meaning.
+[GUIDANCE] One soul-stirring question.
+
+[HINDI_REPLY]
+Same response in Hindi.
+
+FORMAT RULES: NO EMOJIS. Flowing prose only.
+${LANG_INSTRUCTION[language] ?? ''}`
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 interface ResponsePart {
     type: 'chat' | 'acknowledge' | 'scripture' | 'teaching' | 'guidance'
@@ -77,19 +159,14 @@ function parseAIResponse(reply: string): ResponsePart[] {
         })
     }
 
-    if (markers.length === 0) {
-        return [{ type: 'chat', content: reply.trim() }]
-    }
+    if (markers.length === 0) return [{ type: 'chat', content: reply.trim() }]
 
     for (let i = 0; i < markers.length; i++) {
         const contentStart = markers[i].index + markers[i].fullMatchLength
         const contentEnd = i + 1 < markers.length ? markers[i + 1].index : reply.length
         let content = reply.slice(contentStart, contentEnd).trim()
-
         if (!content) continue
-
         const type = markers[i].type as ResponsePart['type']
-
         if (type === 'scripture') {
             const sourceMatch = content.match(/—\s*(.+?)$/m)
             const source = sourceMatch ? sourceMatch[1].trim() : undefined
@@ -98,51 +175,84 @@ function parseAIResponse(reply: string): ResponsePart[] {
             parts.push({ type, content })
         }
     }
-
     return parts.length > 0 ? parts : [{ type: 'chat', content: reply.trim() }]
 }
 
-// ─── Chat API (Groq + Supabase RAG + Persistence) ──────────────────────────
+function splitBilingualReply(reply: string): { english: string; hindi: string } {
+    const engMatch = reply.match(/\[ENGLISH_REPLY\]([\s\S]*?)(?=\[HINDI_REPLY\]|$)/i)
+    const hindiMatch = reply.match(/\[HINDI_REPLY\]([\s\S]*?)$/i)
+    return {
+        english: engMatch ? engMatch[1].trim() : reply.trim(),
+        hindi: hindiMatch ? hindiMatch[1].trim() : '',
+    }
+}
+
+// ─── AI Clients ─────────────────────────────────────────────────────────────
+
+const OLLAMA_URL   = process.env.OLLAMA_URL   || 'http://localhost:11434'
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'tatvam'
+
+async function callGroq(messages: any[], apiKey: string, maxTokens = 1200): Promise<string | null> {
+    try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages,
+                temperature: 0.6,
+                top_p: 0.9,
+                max_tokens: maxTokens,
+            }),
+        })
+        if (!res.ok) return null
+        const data = await res.json()
+        return data.choices?.[0]?.message?.content?.trim() || null
+    } catch { return null }
+}
+
+async function callOllama(messages: any[]): Promise<string | null> {
+    try {
+        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: OLLAMA_MODEL,
+                messages,
+                stream: false,
+                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 250, num_ctx: 1024 },
+            }),
+            signal: AbortSignal.timeout(60000),
+        })
+        if (!res.ok) return null
+        const data = await res.json()
+        return data.message?.content?.trim() || null
+    } catch { return null }
+}
+
+// ─── Main Route ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
     try {
-        const { message, history, userName, conversationId } = await req.json()
+        const { message, history, userName, conversationId, language = 'en-IN' } = await req.json()
 
-        if (!message) {
-            return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
-        }
-
-        const apiKey = process.env.GROQ_API_KEY
-        if (!apiKey) {
-            return NextResponse.json(
-                { detail: 'Groq API key is not configured.' },
-                { status: 500 }
-            )
-        }
+        if (!message) return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
 
         // 🆔 Identity: Verify Token if provided
         const authHeader = req.headers.get('authorization')
         const token = authHeader?.replace('Bearer ', '')
         let userId: string | null = null
-        
         if (token) {
             const { data: { user } } = await supabase.auth.getUser(token)
             userId = user?.id || null
         }
 
-        // 🔎 RAG: Find relevant scriptures
-        const keywords = message.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
-        const { data: scriptures } = await supabaseAdmin.from('scriptures').select('*').limit(50)
+        // RAG: skip for short greetings / small talk
+        const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i
+        const isSmallTalk = message.trim().split(/\s+/).length <= 4 || GREETINGS.test(message.trim())
 
-        const relevant = (scriptures || []).map(s => {
-            let score = 0
-            const text = `${s.english} ${s.hindi} ${s.source} ${(s.themes || []).join(' ')}`.toLowerCase()
-            keywords.forEach((word: string) => { if (text.includes(word)) score += 1 })
-            return { ...s, score }
-        })
-        .filter(s => s.score > 0 || (scriptures && scriptures.length < 5))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3)
+        const scriptures = isSmallTalk ? [] : loadScriptures()
+        const relevant   = isSmallTalk ? [] : findRelevantShloks(message, scriptures)
 
         let scriptureContext = ''
         if (relevant.length > 0) {
@@ -152,104 +262,80 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 🧠 History Logic: Get context for the LLM
-        let chatContext: { role: string; content: string }[] = []
+        const userMessageCount = history && Array.isArray(history)
+            ? history.filter((m: any) => m.type === 'user').length + 1
+            : 1
 
-        if (history && Array.isArray(history) && history.length > 0) {
-            // Use history from frontend if provided
-            chatContext = history.map(msg => ({ 
-                role: msg.type === 'user' ? 'user' : 'assistant', 
-                content: msg.content 
-            })).slice(-10)
-        } else if (conversationId && !conversationId.startsWith('initial')) {
-            // Fetch history from DB if frontend didn't provide it but we have a Conversation ID
-            const { data: dbMessages } = await supabaseAdmin
-                .from('messages')
-                .select('role, content')
-                .eq('conversation_id', conversationId)
-                .order('created_at', { ascending: false })
-                .limit(10)
-            
-            if (dbMessages) {
-                chatContext = dbMessages.reverse().map(m => ({
-                    role: m.role,
-                    content: m.content
-                }))
+        const messages: { role: string; content: string }[] = [
+            { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount, language) + scriptureContext },
+        ]
+
+        if (history && Array.isArray(history)) {
+            for (const msg of history.slice(-10)) {
+                messages.push({
+                    role: msg.type === 'user' ? 'user' : 'assistant',
+                    content: msg.content,
+                })
+            }
+        }
+        messages.push({ role: 'user', content: message })
+
+        const groqKey = process.env.GROQ_API_KEY
+        let reply: string | null = null
+        let modelUsed = ''
+
+        if (isSmallTalk) {
+            const smallMessages = [
+                { role: 'system', content: SMALL_TALK_PROMPT },
+                { role: 'user',   content: message },
+            ]
+            if (groqKey) reply = await callGroq(smallMessages, groqKey, 120)
+            modelUsed = 'groq'
+        } else {
+            reply = await callOllama(messages)
+            modelUsed = 'ollama'
+            if (!reply && groqKey) {
+                console.log('Ollama unavailable, falling back to Groq...')
+                reply = await callGroq(messages, groqKey)
+                modelUsed = 'groq-fallback'
             }
         }
 
-        const userMessageCount = chatContext.length + 1
-        const messages: { role: string; content: string }[] = [
-            { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount) + scriptureContext },
-            ...chatContext,
-            { role: 'user', content: message }
-        ]
+        if (!reply) return NextResponse.json({ detail: 'Reflection engine failed. Please try again.' }, { status: 500 })
 
-        // 🤖 Call AI
-        const aiResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages, temperature: 0.6 }),
-        })
-
-        const data = await aiResponse.json()
-        const reply = data.choices?.[0]?.message?.content
-
-        if (!reply) return NextResponse.json({ detail: 'No reflection generated.' }, { status: 500 })
-
-        // 💾 Persistence: Save to Supabase if user is logged in
+        // 💾 Persistence: Save to Supabase
         let currentConvId = conversationId
-        let persistenceError = null
-
         if (userId) {
-            console.log('User identified for persistence:', userId)
-            // Find or create conversation
-            if (!currentConvId) {
+            if (!currentConvId || currentConvId.startsWith('initial')) {
                 const { data: conv, error: convErr } = await supabaseAdmin.from('conversations').insert({
                     user_id: userId,
                     title: message.slice(0, 40) + (message.length > 40 ? '...' : '')
                 }).select().single()
-                
-                if (convErr) {
-                    console.error('Failed to create conversation:', convErr)
-                    persistenceError = { step: 'create_conv', ...convErr }
-                } else {
-                    currentConvId = conv?.id
-                    console.log('Created new conversation:', currentConvId)
-                }
+                if (!convErr) currentConvId = conv?.id
             }
 
-            if (currentConvId) {
-                // Save messages
-                const { error: msgErr } = await supabaseAdmin.from('messages').insert([
+            if (currentConvId && !currentConvId.startsWith('initial')) {
+                await supabaseAdmin.from('messages').insert([
                     { conversation_id: currentConvId, role: 'user', content: message },
-                    { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { scriptures: relevant.map(s => s.source) } }
+                    { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { scriptures_used: relevant.map(s => s.source) } }
                 ])
-                if (msgErr) {
-                    console.error('Failed to save messages:', msgErr)
-                    persistenceError = { step: 'save_msg', ...msgErr }
-                } else {
-                    console.log('Messages persisted successfully')
-                }
             }
         }
 
+        const { english: reply_english, hindi: reply_hindi } = splitBilingualReply(reply)
+        const parts = parseAIResponse(reply_english)
+
         return NextResponse.json({
             reply,
-            parts: parseAIResponse(reply),
-            scriptures_used: relevant.map(s => s.source),
-            conversationId: currentConvId,
-            debug: {
-                userId,
-                persistenceError
-            }
+            reply_english,
+            reply_hindi,
+            parts,
+            model_used: modelUsed,
+            scriptures_used: relevant.map(s => s.source || s.id),
+            conversationId: currentConvId
         })
     } catch (err: any) {
         console.error('Chat API error:', err)
-        return NextResponse.json({ 
-            detail: err.message || 'Something went wrong',
-            stack: err.stack 
-        }, { status: 500 })
+        return NextResponse.json({ detail: err.message }, { status: 500 })
     }
 }
-

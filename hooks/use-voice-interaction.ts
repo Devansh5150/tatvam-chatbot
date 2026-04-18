@@ -6,6 +6,7 @@ interface VoiceInteractionResult {
   isListening: boolean
   isSpeaking: boolean
   transcript: string
+  interimTranscript: string
   error: string | null
   startListening: (lang?: string) => void
   stopListening: () => void
@@ -14,184 +15,170 @@ interface VoiceInteractionResult {
 }
 
 export function useVoiceInteraction(): VoiceInteractionResult {
-  const [isListening, setIsListening] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
-  const [transcript, setTranscript] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  
-  const recognitionRef = useRef<any>(null)
-  const synthRef = useRef<SpeechSynthesis | null>(null)
-  const autoRestartRef = useRef(false)
+  const [isListening, setIsListening]           = useState(false)
+  const [isSpeaking, setIsSpeaking]             = useState(false)
+  const [transcript, setTranscript]             = useState('')
+  const [interimTranscript, setInterimTranscript] = useState('')
+  const [error, setError]                       = useState<string | null>(null)
+
+  const recognitionRef  = useRef<any>(null)
+  const synthRef        = useRef<SpeechSynthesis | null>(null)
+  const audioRef        = useRef<HTMLAudioElement | null>(null)
+  const isActiveRef     = useRef(false)   // true = we WANT recognition running
+  const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Safe start (catches InvalidStateError if already running) ──────────
+  const safeStart = useCallback(() => {
+    if (!recognitionRef.current || !isActiveRef.current) return
+    try {
+      recognitionRef.current.start()
+    } catch (e: any) {
+      if (e.name === 'InvalidStateError') return // already running — fine
+      console.error('STT start error:', e)
+      // Retry after a short delay for transient errors
+      retryTimerRef.current = setTimeout(safeStart, 400)
+    }
+  }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition()
-        recognition.continuous = false
-        recognition.interimResults = false
-        recognition.lang = 'en-IN'
+    if (typeof window === 'undefined') return
 
-        recognition.onstart = () => {
-          console.log('STT: Started listening')
-          setIsListening(true)
-          setError(null)
-        }
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
-        recognition.onresult = (event: any) => {
-          let interimTranscript = ''
-          let finalTranscript = ''
-
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              finalTranscript += event.results[i][0].transcript
-            } else {
-              interimTranscript += event.results[i][0].transcript
-            }
-          }
-
-          if (finalTranscript) {
-            console.log('STT: Final Result:', finalTranscript)
-            setTranscript(finalTranscript)
-            setIsListening(false)
-          } else if (interimTranscript) {
-             // We can expose this if needed for visual feedback
-             console.log('STT: Interim:', interimTranscript)
-          }
-        }
-
-        recognition.onerror = (event: any) => {
-          console.error('STT Error:', event.error, event.message)
-          setError(event.error)
-          setIsListening(false)
-          autoRestartRef.current = false
-
-          // Handle specific common browser errors
-          if (event.error === 'not-allowed') {
-            setError('Microphone permission denied. Please allow access.')
-          }
-        }
-
-        recognition.onend = () => {
-          console.log('STT: Recognition ended')
-          setIsListening(false)
-        }
-
-        recognitionRef.current = recognition
-      } else {
-        console.warn('STT: Browser does not support SpeechRecognition')
-        setError('Speech recognition not supported in this browser.')
-      }
-      
-      synthRef.current = window.speechSynthesis
+    if (!SpeechRecognition) {
+      setError('Speech recognition not supported in this browser.')
+      return
     }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous     = true   // session stays open — no per-utterance restart dance
+    recognition.interimResults = true
+    recognition.lang           = 'en-IN'
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      setError(null)
+    }
+
+    recognition.onresult = (event: any) => {
+      let interim = ''
+      let final   = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) final   += event.results[i][0].transcript
+        else                          interim += event.results[i][0].transcript
+      }
+      if (final)   { setTranscript(final); setInterimTranscript('') }
+      else if (interim) setInterimTranscript(interim)
+    }
+
+    recognition.onerror = (event: any) => {
+      const { error: err } = event
+      if (err === 'no-speech' || err === 'aborted') return  // normal, onend will restart
+
+      if (err === 'not-allowed') {
+        setError('Microphone permission denied. Please allow access.')
+        isActiveRef.current = false
+        setIsListening(false)
+        return
+      }
+
+      console.warn('STT error:', err)
+      // For network / audio-capture errors, let onend handle the retry
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      if (isActiveRef.current) {
+        // Unexpected end (no-speech timeout, browser restart, etc.) — retry
+        retryTimerRef.current = setTimeout(safeStart, 250)
+      }
+    }
+
+    recognitionRef.current = recognition
+    synthRef.current       = window.speechSynthesis
 
     return () => {
-      if (recognitionRef.current) recognitionRef.current.abort()
-      if (synthRef.current) synthRef.current.cancel()
+      isActiveRef.current = false
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+      recognition.abort()
+      synthRef.current?.cancel()
+      audioRef.current?.pause()
     }
-  }, [])
+  }, [safeStart])
+
+  // ── Public controls ──────────────────────────────────────────────────────
 
   const startListening = useCallback((lang: string = 'en-IN') => {
-    if (!recognitionRef.current) {
-        console.warn('STT: Cannot start, recognition not initialized')
-        return
-    }
-    
-    try {
-      recognitionRef.current.abort()
-      recognitionRef.current.lang = lang
-      
-      // Delay start slightly to ensure abort is processed
-      setTimeout(() => {
-        try {
-          recognitionRef.current.start()
-          console.log('STT: Attempting to start in', lang)
-        } catch (e: any) {
-          if (e.name === 'InvalidStateError') {
-             // Already started, ignore
-             console.log('STT: Already listening')
-          } else {
-            console.error('STT Start Error:', e)
-          }
-        }
-      }, 100)
-    } catch (e) {
-      console.error('STT Abort/Start Error:', e)
-    }
-  }, [])
+    if (!recognitionRef.current) return
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
+    isActiveRef.current = true
+    recognitionRef.current.lang = lang
+    safeStart()
+  }, [safeStart])
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
+    isActiveRef.current = false
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
+    setIsListening(false)
+    setInterimTranscript('')
+    recognitionRef.current?.abort()
   }, [])
 
   const cancelSpeech = useCallback(() => {
-    if (synthRef.current) {
-      synthRef.current.cancel()
-      setIsSpeaking(false)
+    synthRef.current?.cancel()
+    audioRef.current?.pause()
+    setIsSpeaking(false)
+  }, [])
+
+  const speak = useCallback(async (text: string, lang: string = 'en-IN'): Promise<void> => {
+    try {
+      setIsSpeaking(true)
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+
+      if (response.ok) {
+        const audioUrl = URL.createObjectURL(await response.blob())
+        return new Promise((resolve) => {
+          audioRef.current?.pause()
+          const audio = new Audio(audioUrl)
+          audioRef.current = audio
+          audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(audioUrl); resolve() }
+          audio.onerror = () => { setIsSpeaking(false); URL.revokeObjectURL(audioUrl); resolve(speakFallback(text)) }
+          audio.play().catch(() => { setIsSpeaking(false); resolve(speakFallback(text)) })
+        })
+      }
+    } catch (e) {
+      console.error('TTS fetch error:', e)
     }
+
+    return speakFallback(text)
   }, [])
 
-  const speak = useCallback((text: string, lang: string = 'en-IN'): Promise<void> => {
+  const speakFallback = (text: string): Promise<void> => {
     return new Promise((resolve) => {
-      if (!synthRef.current) {
-        resolve()
-        return
-      }
-
-      // Cancel any ongoing speech
+      if (!synthRef.current) { resolve(); return }
       synthRef.current.cancel()
-
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = lang
-      
-      // Select a Deep Meditative Male Voice
-      // We look for names like "Ravi", "David", "Google Hindi", etc.
+      const utt    = new SpeechSynthesisUtterance(text)
+      utt.lang     = 'en-GB'
+      utt.pitch    = 0.78
+      utt.rate     = 0.82
+      utt.volume   = 1
       const voices = synthRef.current.getVoices()
-      
-      // Filtering strategy: 
-      // 1. Try to find a match for the requested language + "Male" or specific known good names
-      const preferredVoice = voices.find(v => 
-        (v.lang.includes(lang) || v.lang.includes(lang.split('-')[0])) && 
-        (v.name.toLowerCase().includes('male') || 
-         v.name.toLowerCase().includes('ravi') || 
-         v.name.toLowerCase().includes('david') ||
-         v.name.toLowerCase().includes('google hindi'))
-      ) || voices.find(v => v.lang.includes(lang)) || voices[0]
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice
-      }
-
-      // Pitch and Rate for "Deep/Meditative"
-      utterance.pitch = 0.85 // Lower pitch
-      utterance.rate = 0.9   // Slightly slower tempo for calm
-
-      utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => {
-        setIsSpeaking(false)
-        resolve()
-      }
-      utterance.onerror = (e) => {
-        console.error('Speech Synthesis Error:', e)
-        setIsSpeaking(false)
-        resolve()
-      }
-
-      synthRef.current.speak(utterance)
+      const voice  =
+        voices.find(v => v.name === 'Google UK English Male') ||
+        voices.find(v => v.name.startsWith('Google') && v.lang.startsWith('en')) ||
+        voices.find(v => v.lang.startsWith('en'))
+      if (voice) utt.voice = voice
+      utt.onstart = () => setIsSpeaking(true)
+      utt.onend   = () => { setIsSpeaking(false); resolve() }
+      utt.onerror = () => { setIsSpeaking(false); resolve() }
+      synthRef.current.speak(utt)
     })
-  }, [])
-
-  return {
-    isListening,
-    isSpeaking,
-    transcript,
-    error,
-    startListening,
-    stopListening,
-    speak,
-    cancelSpeech
   }
+
+  return { isListening, isSpeaking, transcript, interimTranscript, error, startListening, stopListening, speak, cancelSpeech }
 }

@@ -95,7 +95,7 @@ export default function SneakPeekPage() {
 
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <Link href="/demo">
+                    <Link href="/voice-demo">
                         <Button className="px-10 py-6 rounded-xl bg-accent text-[#080706] font-bold tracking-[0.15em] uppercase text-sm transition-all duration-300 hover:bg-white hover:scale-105 shadow-[0_10px_30px_rgba(201,151,110,0.3)]">
                             Begin Your Reflection
                         </Button>

@@ -480,6 +480,7 @@ function DashboardSidebar({
     activePanel: SidebarPanel
     onTogglePanel: (p: SidebarPanel) => void
 }) {
+    const router = useRouter()
     return (
         <aside className="w-[70px] h-full bg-card flex flex-col items-center py-6 border-r border-border shrink-0 z-20 transition-colors duration-300">
             {/* Logo */}
@@ -522,15 +523,20 @@ function DashboardSidebar({
                     </svg>
                 </SidebarBtn>
 
-                {/* Daily Shlok Guide */}
+                {/* Voice Portal Entry */}
                 <SidebarBtn
-                    label="Daily Shlok Guide"
-                    active={activePanel === 'shlok_guide'}
-                    onClick={() => onTogglePanel(activePanel === 'shlok_guide' ? null : 'shlok_guide')}
+                    label="Meditative Portal"
+                    active={false}
+                    onClick={() => router.push('/portal')}
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="6" />
+                        <circle cx="12" cy="12" r="2" />
                     </svg>
+                    <div className="absolute -top-1 -right-1 flex">
+                        <div className="w-2 h-2 bg-accent rounded-full animate-ping" />
+                    </div>
                 </SidebarBtn>
 
                 {/* History */}
