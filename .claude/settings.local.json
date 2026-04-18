@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(curl -s --max-time 15 https://api.elevenlabs.io/v1/voices -H 'xi-api-key: sk_ec99b4d76243f558edb8472b78704c3ede9a723e6b46318a')",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)",
+      "Bash(node *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

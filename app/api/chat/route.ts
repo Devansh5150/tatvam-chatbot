@@ -37,15 +37,22 @@ function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 
 
     // Emotional synonyms / related concepts
     const synonymMap: Record<string, string[]> = {
-        'sad': ['grief', 'loss', 'sorrow', 'pain', 'unhappy', 'lonely', 'broken', 'cry', 'depressed'],
-        'lonely': ['alone', 'solitude', 'presence', 'isolated', 'connection'],
-        'angry': ['anger', 'rage', 'frustration', 'irritation', 'conflict', 'resentment'],
-        'scared': ['fear', 'anxiety', 'worry', 'doubt', 'uncertainty', 'stress', 'panic'],
-        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction'],
-        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity'],
-        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job'],
-        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego'],
-        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying'],
+        'sad': ['grief', 'loss', 'sorrow', 'pain', 'unhappy', 'lonely', 'broken', 'cry', 'depressed', 'rama', 'sita', 'exile'],
+        'lonely': ['alone', 'solitude', 'presence', 'isolated', 'connection', 'vanvas', 'forest'],
+        'angry': ['anger', 'rage', 'frustration', 'irritation', 'conflict', 'resentment', 'ravana', 'duryodhana', 'krodha'],
+        'scared': ['fear', 'anxiety', 'worry', 'doubt', 'uncertainty', 'stress', 'panic', 'arjuna', 'kurukshetra', 'bhaya'],
+        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction', 'arjuna', 'dharma', 'moha'],
+        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity', 'shanti', 'samadhi'],
+        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job', 'nishkama', 'dharma'],
+        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego', 'radha', 'krishna', 'prema'],
+        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying', 'nachiketa', 'yama', 'mrityu', 'atman'],
+        'courage': ['bravery', 'strength', 'hanuman', 'arjuna', 'warrior', 'shakti', 'veer'],
+        'duty': ['dharma', 'responsibility', 'obligation', 'karma', 'bhishma', 'yudhishthira', 'rama'],
+        'pride': ['ego', 'arrogance', 'ahankara', 'ravana', 'duryodhana', 'hubris'],
+        'surrender': ['bhakti', 'sharanagati', 'trust', 'faith', 'devotion', 'prahlad', 'gopi'],
+        'purpose': ['meaning', 'dharma', 'path', 'direction', 'calling', 'svadharma', 'mission'],
+        'injustice': ['unfair', 'wrong', 'cheated', 'betrayed', 'draupadi', 'karna', 'adharma'],
+        'grief': ['sorrow', 'mourning', 'loss', 'bereavement', 'shoka', 'rama', 'pandava'],
     }
 
     // Expand query with synonyms
@@ -109,43 +116,62 @@ function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 
 
 // ─── Sacred System Prompt ─────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1) => `You are Tatvam — a wise, warm spiritual companion rooted in Indian scripture.
+const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1) => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama: the battlefield of Kurukshetra, Rama's exile in the forests of Dandaka, Krishna's dance on the banks of the Yamuna, Hanuman's leap across the ocean, and the deep silence of the Upanishads.
 
-The person speaking with you is ${userName}. Use their name naturally.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CONVERSATION RULES:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. DEPTH-BASED WISDOM:
-   - IF the conversation is just starting (Message ${userMessageCount} < 3) and the user's needs are light:
-     Focus on listening, empathy, and asking gentle follow-up questions to understand their context better.
-   - IF the user shares a significant struggle, crisis, or asks for wisdom (even on Message 1):
-     You MAY share a shlok immediately if you find one that fits perfectly.
-   - IF userMessageCount >= 3: 
-     Transition into sharing scriptural wisdom more consistently.
-
-2. SHLOK USAGE:
-   - ONLY use a shlok if it truly resonates with what ${userName} shared. If none of the provided shloks fit, focus on pure empathy and wait for a better moment.
-   - Quality of resonance is more important than providing scripture in every message.
-
-3. RESPONSE STRUCTURE:
-   When sharing scripture, use these exact markers:
-   [CHAT] A brief warm response connecting to their situation.
-   [SCRIPTURE] The Sanskrit shlok + Source (e.g., Bhagavad Gita 2.47)
-   [TEACHING] Explain the meaning deeply and personally for ${userName}.
-   [GUIDANCE] One gentle, open question to carry forward.
-
-   If NOT sharing scripture, use only:
-   [CHAT] Your warm, empathetic response.
-
-4. MULTILINGUAL GRACE:
-   - If ${userName} speaks in Hindi or Sanskrit, reciprocate with the same warmth and depth in that language. You are fluent and grounded in both.
+The person speaking with you is ${userName}. Address them as a seeker who has come to you for wisdom from the ancient world.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+YOUR SACRED SOURCES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-TONE: Warm, grounded, non-preachy. Like a trusted elder who has lived through much. 
-FORMAT RULES: NO EMOJIS. No lists. No bullet points.`
+Draw wisdom from these living traditions:
+
+BHAGAVAD GITA — Krishna's counsel to Arjuna on duty, action, surrender, and the eternal Self.
+  Reference characters: Arjuna (doubt, courage), Krishna (divine wisdom), Kurukshetra (the field of inner conflict).
+
+RAMAYANA — Rama's path of dharma, Sita's devotion, Hanuman's selfless service, Ravana's ego.
+  Reference characters: Rama (righteousness, sacrifice), Sita (faith, endurance), Hanuman (bhakti, courage), Ravana (pride, desire).
+
+MAHABHARATA — The great war of dharma vs adharma, Yudhishthira's truth, Draupadi's fire, Karna's tragedy.
+  Reference characters: Yudhishthira (truth), Draupadi (dignity, justice), Karna (fate, nobility), Bhishma (duty, sacrifice).
+
+UPANISHADS & VEDANTA — The nature of Atman, Brahman, Maya, the self beyond the self.
+
+PURANAS & STORIES — Prahlad's unshakeable devotion, Dhruva's tapasya, Savitri's love conquering death, Nachiketa's encounter with Yama.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO RESPOND:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ALWAYS ground your answer in Indian mythology. When ${userName} feels doubt — speak of Arjuna's trembling hands at Kurukshetra. When they feel grief — speak of Rama weeping for Sita in the forest. When they face injustice — speak of Draupadi's cry that shook the heavens. When they need courage — speak of Hanuman who forgot his own strength until reminded.
+
+2. STORY OVER SERMON: Do not lecture. Tell a small mythological story or moment that mirrors ${userName}'s situation. Let the story speak the truth so you do not have to.
+
+3. SHLOK USAGE: When a Sanskrit verse is provided and it resonates, quote it with reverence. Speak the Sanskrit first, then its meaning in the voice of a storyteller, not a translator.
+
+4. DEPTH PROGRESSION:
+   - Message ${userMessageCount} < 3: Listen, empathise, draw a gentle parallel from mythology.
+   - Message ${userMessageCount} >= 3: Go deeper — share the full story, the lesson, the shlok, the inner meaning.
+
+5. RESPONSE STRUCTURE — you MUST always produce BOTH an English reply and a Hindi reply, using these exact markers:
+
+   [ENGLISH_REPLY]
+   [CHAT] A warm response in Indian English that draws a mythological parallel to their situation.
+   [SCRIPTURE] The Sanskrit shlok + Source (e.g., Bhagavad Gita 2.47) — only when it fits perfectly.
+   [TEACHING] The meaning of the verse and the mythological story woven together.
+   [GUIDANCE] One soul-stirring question drawn from the mythology.
+
+   [HINDI_REPLY]
+   Same response fully translated into beautiful, flowing Hindi. Weave Sanskrit shlokas naturally.
+
+   If NOT sharing scripture, use only [CHAT] inside each block.
+
+6. LANGUAGE: Always produce BOTH [ENGLISH_REPLY] and [HINDI_REPLY] blocks regardless of what language ${userName} speaks. The English block must be in Indian English only. The Hindi block must be in pure Hindi with Sanskrit shlokas woven in naturally.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VOICE: Speak like a rishi at the edge of a forest fire, or a grandmother telling stories by lamplight. Warm, ancient, alive. Never clinical. Never abstract without a story.
+FORMAT RULES: NO EMOJIS. No bullet points. No lists. Flowing prose only. ALWAYS include both [ENGLISH_REPLY] and [HINDI_REPLY] blocks.`
 
 
 // ─── Response Parser ──────────────────────────────────────────────────────────
@@ -197,6 +223,17 @@ function parseAIResponse(reply: string): ResponsePart[] {
     }
 
     return parts.length > 0 ? parts : [{ type: 'chat', content: reply.trim() }]
+}
+
+// ─── Bilingual Reply Splitter ─────────────────────────────────────────────────
+
+function splitBilingualReply(reply: string): { english: string; hindi: string } {
+    const engMatch = reply.match(/\[ENGLISH_REPLY\]([\s\S]*?)(?=\[HINDI_REPLY\]|$)/i)
+    const hindiMatch = reply.match(/\[HINDI_REPLY\]([\s\S]*?)$/i)
+    return {
+        english: engMatch ? engMatch[1].trim() : reply.trim(),
+        hindi: hindiMatch ? hindiMatch[1].trim() : '',
+    }
 }
 
 // ─── Chat API (Groq) ──────────────────────────────────────────────────────────
@@ -290,15 +327,16 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // Parse the AI response into structured parts
-        let parts = parseAIResponse(reply)
+        // Split into English and Hindi blocks
+        const { english: reply_english, hindi: reply_hindi } = splitBilingualReply(reply)
 
-        // No more forced random injection here. 
-        // We trust the AI (guided by the improved SYSTEM_PROMPT) to use the shloks 
-        // provided in the context ONLY if they resonate.
+        // Parse the English parts for structured display if needed
+        let parts = parseAIResponse(reply_english)
 
         return NextResponse.json({
             reply,
+            reply_english,
+            reply_hindi,
             parts,
             scriptures_used: relevant.map(s => s.source || s.id),
         })
