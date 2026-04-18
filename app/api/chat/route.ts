@@ -189,41 +189,39 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
 
 // ─── AI Clients ─────────────────────────────────────────────────────────────
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+const OLLAMA_URL   = process.env.OLLAMA_URL   || 'http://localhost:11434'
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'tatvam'
 
-async function callSarvam(messages: any[], apiKey: string, maxTokens = 1200): Promise<string | null> {
+async function callOllama(messages: any[]): Promise<string | null> {
     try {
-        const res = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-subscription-key': apiKey,
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'sarvam-105b',
+                model: OLLAMA_MODEL,
+                messages,
+                stream: false,
+                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 500, num_ctx: 1024 },
+            }),
+            signal: AbortSignal.timeout(60000),
+        })
+        if (!res.ok) return null
+        const data = await res.json()
+        return data.message?.content?.trim() || null
+    } catch { return null }
+}
+
+async function callGroq(messages: any[], apiKey: string, maxTokens = 1200): Promise<string | null> {
+    try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
                 messages,
                 temperature: 0.6,
                 max_tokens: maxTokens,
             }),
-        })
-        if (!res.ok) return null
-        const data = await res.json()
-        return data.choices?.[0]?.message?.content?.trim() || null
-    } catch { return null }
-}
-
-async function callLocalFastAPI(messages: any[]): Promise<string | null> {
-    try {
-        const res = await fetch(`${BACKEND_URL}/v1/chat/completions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "tatvam-local",
-                messages,
-                temperature: 0.75,
-                max_tokens: 1024,
-            }),
-            signal: AbortSignal.timeout(60000),
         })
         if (!res.ok) return null
         const data = await res.json()
@@ -281,7 +279,7 @@ export async function POST(req: NextRequest) {
         }
         messages.push({ role: 'user', content: message })
 
-        const sarvamKey = process.env.SARVAM_API_KEY
+        const groqKey = process.env.GROQ_API_KEY
         let reply: string | null = null
         let modelUsed = ''
 
@@ -290,21 +288,18 @@ export async function POST(req: NextRequest) {
                 { role: 'system', content: SMALL_TALK_PROMPT },
                 { role: 'user',   content: message },
             ]
-            if (sarvamKey) reply = await callSarvam(smallMessages, sarvamKey, 120)
-            modelUsed = 'sarvam-105b'
+            reply = await callOllama(smallMessages)
+            modelUsed = 'ollama'
         } else {
-            // First try Sarvam AI
-            if (sarvamKey) {
-                reply = await callSarvam(messages, sarvamKey)
-                modelUsed = 'sarvam-105b'
-            }
-            
-            // Fallback to local python FastApi if Sarvam fails
-            if (!reply) {
-                console.log('Sarvam unavailable, falling back to local Python Server...')
-                reply = await callLocalFastAPI(messages)
-                modelUsed = 'local-unsloth'
-            }
+            reply = await callOllama(messages)
+            modelUsed = 'ollama'
+        }
+        
+        // Fallback to Groq if Ollama fails
+        if (!reply && groqKey) {
+            console.log('Ollama unavailable. Falling back to Groq...')
+            reply = await callGroq(messages, groqKey)
+            modelUsed = 'groq-fallback'
         }
 
         if (!reply) return NextResponse.json({ detail: 'Reflection engine failed. Please try again.' }, { status: 500 })
