@@ -327,7 +327,7 @@ export async function POST(req: NextRequest) {
             if (groqKey) { reply = await callGroq(smallMessages, groqKey, 120); modelUsed = 'groq' }
             if (!reply) { reply = await callOllama(smallMessages); modelUsed = 'ollama' }
         } else {
-            if (groqKey) { reply = await callGroq(messages, groqKey, 380); modelUsed = 'groq' }
+            if (groqKey) { reply = await callGroq(messages, groqKey, 250); modelUsed = 'groq' }
             if (!reply) { reply = await callOllama(messages); modelUsed = 'ollama' }
         }
 

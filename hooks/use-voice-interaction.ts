@@ -95,7 +95,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
           silenceCountRef.current = 0
         } else if (hasSpokenRef.current) {
           silenceCountRef.current++
-          if (silenceCountRef.current >= 35) { // ~1.75s silence after speech
+          if (silenceCountRef.current >= 16) { // ~0.8s silence after speech
             if (recorder.state === 'recording') recorder.stop()
             return
           }
@@ -103,7 +103,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
         silenceTimerRef.current = setTimeout(check, 50)
       }
 
-      silenceTimerRef.current = setTimeout(check, 200)
+      silenceTimerRef.current = setTimeout(check, 50)
 
       // Hard cap: 30s
       maxTimerRef.current = setTimeout(() => {
