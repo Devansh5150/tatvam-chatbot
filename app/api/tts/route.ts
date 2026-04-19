@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
         'api-subscription-key': apiKey,
       },
       body: JSON.stringify({
-        text: safeText,
-        model: 'bulbul:v3',
-        target_language_code: 'hi-IN', // Defaults to hi-IN which handles mixed text well
+        inputs: [safeText],
+        target_language_code: 'hi-IN',
         speaker: 'shubh',
+        model: 'bulbul:v3',
         pace: 1.0,
         temperature: 0.6,
         sample_rate: 24000

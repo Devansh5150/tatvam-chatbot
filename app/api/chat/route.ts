@@ -112,28 +112,6 @@ function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 
 
 // ─── Prompts ──────────────────────────────────────────────────────────────────
 
-const SMALL_TALK_PROMPT = (language: string = 'en-IN') => `You are Tatvam — a warm, wise spiritual companion.
-The seeker has just greeted you or sent a very casual short message.
-Reply in ONE warm sentence — friendly, human, and slightly poetic.
-No scripture. No sections. No markers. No lists. Just one natural, welcoming sentence.
-
-IMPORTANT: Please write your reply in the language specified below. DO NOT use [ENGLISH_REPLY] or [HINDI_REPLY] markers, just provide the direct text.
-${LANG_INSTRUCTION[language] ?? ''}`
-
-// Maps our UI language IDs → the API language codes used in LANG_INSTRUCTION
-// Also indicates which reply block to surface to the user (english = [ENGLISH_REPLY], hindi = [HINDI_REPLY])
-const LANG_CONFIG: Record<string, { apiCode: string; displayBlock: 'english' | 'hindi' }> = {
-  'en':  { apiCode: 'en-IN',   displayBlock: 'english' },
-  'hi':  { apiCode: 'hi-IN',   displayBlock: 'hindi'   },
-  'hin': { apiCode: 'hinglish',displayBlock: 'english'  }, // Hinglish goes into [ENGLISH_REPLY]
-  'sa':  { apiCode: 'sa',      displayBlock: 'english'  }, // Sanskrit in [ENGLISH_REPLY]
-  'pa':  { apiCode: 'pa-IN',   displayBlock: 'hindi'   },
-  'gu':  { apiCode: 'gu-IN',   displayBlock: 'hindi'   },
-  'ta':  { apiCode: 'ta-IN',   displayBlock: 'hindi'   },
-  'mr':  { apiCode: 'mr-IN',   displayBlock: 'hindi'   },
-  'bn':  { apiCode: 'bn-IN',   displayBlock: 'hindi'   },
-}
-
 const LANG_INSTRUCTION: Record<string, string> = {
   'hi-IN':   '\nLANGUAGE INSTRUCTION: YOU MUST WRITE IN HINDI (हिन्दी). Write the [HINDI_REPLY] in full, rich, flowing Hindi with Sanskrit shlokas woven naturally. Keep the [ENGLISH_REPLY] brief.',
   'hinglish': '\nLANGUAGE INSTRUCTION: YOU MUST WRITE IN HINGLISH. Write the [ENGLISH_REPLY] in natural Hinglish — fluidly mixing Hindi and English words. Write the [HINDI_REPLY] in pure Hindi.',
@@ -145,6 +123,26 @@ const LANG_INSTRUCTION: Record<string, string> = {
   'bn-IN':   '\nLANGUAGE INSTRUCTION: YOU MUST WRITE IN BENGALI (বাংলা). Write the [HINDI_REPLY] ENTIRELY in Bengali using Bangla script (এভাবে). The [ENGLISH_REPLY] can be Indian English.',
 }
 
+const SMALL_TALK_PROMPT = (language: string = 'en-IN') => `You are Tatvam — a warm, wise spiritual companion.
+The seeker has just greeted you or sent a very casual short message.
+Reply in ONE warm sentence — friendly, human, and slightly poetic.
+No scripture. No sections. No markers. No lists. Just one natural, welcoming sentence.
+
+IMPORTANT: Please write your reply in the language specified below. DO NOT use [ENGLISH_REPLY] or [HINDI_REPLY] markers, just provide the direct text.
+${LANG_INSTRUCTION[language] ?? ''}`
+
+const LANG_CONFIG: Record<string, { apiCode: string; displayBlock: 'english' | 'hindi' }> = {
+  'en':  { apiCode: 'en-IN',   displayBlock: 'english' },
+  'hi':  { apiCode: 'hi-IN',   displayBlock: 'hindi'   },
+  'hin': { apiCode: 'hinglish',displayBlock: 'english'  }, 
+  'sa':  { apiCode: 'sa',      displayBlock: 'english'  }, 
+  'pa':  { apiCode: 'pa-IN',   displayBlock: 'hindi'   },
+  'gu':  { apiCode: 'gu-IN',   displayBlock: 'hindi'   },
+  'ta':  { apiCode: 'ta-IN',   displayBlock: 'hindi'   },
+  'mr':  { apiCode: 'mr-IN',   displayBlock: 'hindi'   },
+  'bn':  { apiCode: 'bn-IN',   displayBlock: 'hindi'   },
+}
+
 const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1, language: string = 'en-IN') => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama.
 
 The person speaking with you is ${userName}. Address them as a seeker.
@@ -153,7 +151,7 @@ RESPONSE STRUCTURE — you MUST always produce BOTH an English reply and a local
 
 [ENGLISH_REPLY]
 [ACKNOWLEDGE] A short, empathetic sentence mirroring the user's emotion.
-[SCRIPTURE] The Sanskrit shlok + Source from the UNIQUE SCRIPTURAL ESSENCE provided below. You MUST choose a verse from the essence that matches the user's state. If multiple match, choose the best one.
+[SCRIPTURE] The Sanskrit shlok + Source from the UNIQUE SCRIPTURAL ESSENCE provided below. You MUST choose a verse from the essence that matches the user's state.
 [TEACHING] A 2-sentence explanation of how this specific verse applies to the user's situation.
 [GUIDANCE] One soul-stirring question to help them reflect.
 
@@ -161,11 +159,11 @@ RESPONSE STRUCTURE — you MUST always produce BOTH an English reply and a local
 (Same structure but translated perfectly into the user's chosen language: ${language})
 
 CRITICAL RULES:
-1. Anchoring: You MUST choose exactly ONE shlok from the SCRIPTURAL ESSENCE provided. Do not invent verses.
-2. Emotional Mirroring: The [ACKNOWLEDGE] section must use "vibhuti-sparsha" (divine empathy) — mirroring the seeker's state with warmth.
-3. Language Consistency: The [HINDI_REPLY] structure MUST MATCH the [ENGLISH_REPLY] exactly. Translate all headers and content accurately into the target language.
-4. Tone: Keep the tone warm, divine, and respectful.
-5. Format: NO EMOJIS. Flowing prose only.
+1. Anchoring: You MUST choose exactly ONE shlok from the SCRIPTURAL ESSENCE provided.
+2. Emotional Mirroring: Mirror the seeker's state with warmth.
+3. Language Consistency: The [HINDI_REPLY] structure MUST MATCH the [ENGLISH_REPLY] exactly.
+4. Tone: Warm, divine, and respectful.
+5. Format: NO EMOJIS.
 
 ${LANG_INSTRUCTION[language] ?? ''}`
 
@@ -188,24 +186,16 @@ function parseAIResponse(reply: string): ResponsePart[] {
             fullMatchLength: match[0].length,
         })
     }
-
     if (markers.length === 0) return [{ type: 'chat', content: reply.trim() }]
-
     const parts: any[] = []
-
-    // Capture any text BEFORE the first marker as a chat block
     if (markers[0].index > 0) {
         const prefixText = reply.slice(0, markers[0].index).trim()
-        if (prefixText) {
-            parts.push({ type: 'chat', content: prefixText })
-        }
+        if (prefixText) parts.push({ type: 'chat', content: prefixText })
     }
-
     for (let i = 0; i < markers.length; i++) {
         const contentStart = markers[i].index + markers[i].fullMatchLength
         const contentEnd = i + 1 < markers.length ? markers[i + 1].index : reply.length
         let content = reply.slice(contentStart, contentEnd).trim()
-
         const type = markers[i].type
         if (type === 'scripture') {
             const sourceMatch = content.match(/—\s*(.+?)$/m)
@@ -219,13 +209,10 @@ function parseAIResponse(reply: string): ResponsePart[] {
 }
 
 function splitBilingualReply(reply: string): { english: string; hindi: string } {
-    // Look for tags with case-insensitive and optional whitespace/brackets variations
     const engRegex = /\[?ENGLISH_REPLY\]?([\s\S]*?)(?=\[?HINDI_REPLY\]?|$)/i
     const hindiRegex = /\[?HINDI_REPLY\]?([\s\S]*?)$/i
-
     const engMatch = reply.match(engRegex)
     const hindiMatch = reply.match(hindiRegex)
-
     return {
         english: engMatch ? engMatch[1].trim() : reply.trim(),
         hindi: hindiMatch ? hindiMatch[1].trim() : '',
@@ -246,7 +233,7 @@ async function callOllama(messages: any[]): Promise<string | null> {
                 model: OLLAMA_MODEL,
                 messages,
                 stream: false,
-                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 300, num_ctx: 768 },
+                options: { temperature: 0.75, num_predict: 300, num_ctx: 768 },
             }),
             signal: AbortSignal.timeout(5000),
         })
@@ -279,75 +266,51 @@ async function callGroq(messages: any[], apiKey: string, maxTokens = 1200): Prom
 export async function POST(req: NextRequest) {
     try {
         const { message, history, userName, conversationId, language: langId = 'en' } = await req.json()
-
-        // Resolve the short UI language ID (e.g. 'hi') → the full API code (e.g. 'hi-IN')
         const langConf = LANG_CONFIG[langId] ?? LANG_CONFIG['en']
         const language = langConf.apiCode
-
         if (!message) return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
 
         // ── Off-topic guard ───────────────────────────────────────────────────
         const ALLOWED = /\b(dharma|karma|life|soul|atman|peace|purpose|meaning|god|divine|prayer|meditation|mantra|gita|ramayana|mahabharata|vedas|upanishad|scripture|shlok|bhagavad|krishna|rama|hanuman|shiva|devi|brahma|vishnu|moksha|liberation|suffering|pain|grief|loss|anger|fear|anxiety|lonely|love|relationship|family|duty|death|rebirth|maya|illusion|truth|self|ego|mind|heart|faith|devotion|bhakti|yoga|wisdom|sin|virtue|forgiveness|attachment|detachment|surrender|guidance|confused|lost|sad|happy|hurt|heal|spiritual|emotion|feel|feeling|struggle|path|journey|seeker|help me|why am i|what is life|who am i|inner|outer|universe|energy|chakra|prana|consciousness|awareness|present|moment|gratitude|compassion|kindness|patience|strength|courage|hope|despair|worry|stress|overwhelm|burnout|purpose|calling|destiny|fate|free will|choice|action|result|success|failure|right|wrong|good|evil|light|darkness|silence|joy|bliss|peace of mind)\b/i
-
-        // Hinglish / Hindi conversational phrases that should always pass
         const HINGLISH = /\b(matlab|samjha|samjho|bata|batao|bolo|kya|kyun|kaise|kaisa|kaisi|nhi|nahi|haan|theek|acha|accha|sach|sahi|galat|dukh|dard|takleef|pareshaan|mushkil|zindagi|mohabbat|pyar|rishta|khud|mann|dil|atma|rooh|khushi|gham|darr|gussa|akela|akeli|tanha|umeed|himmat|shukriya|maafi|samajh|bol|sun|dekh|lag raha|feel ho|ho raha|kya karu|kya karein|mujhe|mujhe samjh|nahi samjha|nahi samjhi|samajh nahi|phir se|dobara|aur|lekin|kyunki|isliye)\b/i
-
         const isSpiritual = ALLOWED.test(message) || HINGLISH.test(message)
-        const isGreeting  = /^(hi|hello|hey|namaste|hii|helo|jai|pranam|satsriakal|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho|who are you|what are you|tell me about yourself)\b/i.test(message.trim())
-        const isShort     = message.trim().split(/\s+/).length <= 6  // short messages are conversational, let through
+        const isGreeting  = /^(hi|hello|hey|namaste|hii|helo|namaskaaram|jai|pranam|satsriakal|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i.test(message.trim())
+        const isShort     = message.trim().split(/\s+/).length <= 6 
 
         if (!isSpiritual && !isGreeting && !isShort) {
             const redirect = language === 'hi-IN'
-                ? 'मैं तत्त्वम् हूँ — केवल आत्मा, धर्म, जीवन और भावनाओं की बात कर सकता हूँ। कोई आध्यात्मिक या हृदय की बात कहें।'
-                : 'I am Tatvam — I speak only of the soul, dharma, emotions, and life\'s deeper questions. I cannot help with that. What weighs on your heart?'
-            return NextResponse.json({
-                reply: redirect,
-                reply_english: redirect,
-                reply_hindi: language === 'hi-IN' ? redirect : '',
-                model: 'guard',
-            })
+                ? 'मैं तत्त्वम् हूँ — केवल आध्यात्मिक बातें कर सकता हूँ।'
+                : 'I am Tatvam — I speak only of the soul and dharma. How can I guide you spiritually?'
+            return NextResponse.json({ reply: redirect, reply_english: redirect, reply_hindi: '', model: 'guard' })
         }
-        // ─────────────────────────────────────────────────────────────────────
 
         // ── Auth Lookup ──────────────────────────────────────────────────────
         const supabaseServer = await createServerSideClient()
         const { data: { user } } = await supabaseServer.auth.getUser()
+        const userId = user?.id
         
-        if (!user) {
-            return NextResponse.json({ detail: 'Authentication required' }, { status: 401 })
-        }
-        const userId = user.id
+        if (!userId) console.warn('[Chat] GUEST MODE: Responses will not be saved.')
 
-        // RAG: skip for short greetings / small talk
         const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i
         const isSmallTalk = message.trim().split(/\s+/).length <= 4 || GREETINGS.test(message.trim())
-
         const scriptures = isSmallTalk ? [] : loadScriptures()
         const relevant   = isSmallTalk ? [] : findRelevantShloks(message, scriptures)
 
         let scriptureContext = ''
         if (relevant.length > 0) {
             scriptureContext = '\n\nRELEVANT SCRIPTURE:\n'
-            // Cap at 2 shlokas to keep prompt short
             for (const s of relevant.slice(0, 2)) {
                 scriptureContext += `- ${s.source || 'Scripture'}: ${s.sanskrit} (${s.english})\n`
             }
         }
 
-        const userMessageCount = history && Array.isArray(history)
-            ? history.filter((m: any) => m.type === 'user').length + 1
-            : 1
-
-        const messages: { role: string; content: string }[] = [
+        const userMessageCount = history && Array.isArray(history) ? history.length + 1 : 1
+        const messages: any[] = [
             { role: 'system', content: SYSTEM_PROMPT(userName, userMessageCount, language) + scriptureContext },
         ]
-
         if (history && Array.isArray(history)) {
             for (const msg of history.slice(-10)) {
-                messages.push({
-                    role: msg.type === 'user' ? 'user' : 'assistant',
-                    content: msg.content,
-                })
+                messages.push({ role: msg.type === 'user' ? 'user' : 'assistant', content: msg.content })
             }
         }
         messages.push({ role: 'user', content: message })
@@ -357,62 +320,39 @@ export async function POST(req: NextRequest) {
         let modelUsed = ''
 
         if (isSmallTalk) {
-            // Greetings → Groq with tiny prompt, hard 120-token cap (~1s)
-            const smallMessages = [
-                { role: 'system', content: SMALL_TALK_PROMPT(language) },
-                { role: 'user',   content: message },
-            ]
+            const smallMessages = [{ role: 'system', content: SMALL_TALK_PROMPT(language) }, { role: 'user', content: message }]
             if (groqKey) { reply = await callGroq(smallMessages, groqKey, 120); modelUsed = 'groq' }
         } else {
-            // Deep guidance → Groq first (fast), Ollama as optional fallback
             if (groqKey) { reply = await callGroq(messages, groqKey, 380); modelUsed = 'groq' }
             if (!reply) { reply = await callOllama(messages); modelUsed = 'ollama' }
         }
 
-        if (!reply) return NextResponse.json({ detail: 'Reflection engine failed. Please try again.' }, { status: 500 })
+        if (!reply) return NextResponse.json({ detail: 'Reflection engine failed.' }, { status: 500 })
 
-        // 💾 Persistence: Save to Supabase
+        // 💾 Persistence
         let currentConvId = conversationId
         if (userId) {
-            console.log(`[Persistence] Saving chat for user: ${userId}, conversation: ${currentConvId}`)
-            
-            // 1. Create conversation if new
             if (!currentConvId || currentConvId.startsWith('initial')) {
-                const { data: conv, error: convErr } = await supabaseAdmin.from('conversations').insert({
+                const { data: conv } = await supabaseAdmin.from('conversations').insert({
                     user_id: userId,
-                    title: message.slice(0, 40) + (message.length > 40 ? '...' : '')
+                    title: message.slice(0, 40)
                 }).select().single()
-                
-                if (convErr) {
-                    console.error('[Persistence] Error creating conversation:', convErr)
-                } else if (conv) {
+                if (conv) {
                     currentConvId = conv.id
-                    console.log(`[Persistence] New conversation created: ${currentConvId}`)
-                }
-            }
-
-            // 2. Insert messages if we have a valid conversation ID
-            if (currentConvId && !currentConvId.startsWith('initial')) {
-                const { error: msgErr } = await supabaseAdmin.from('messages').insert([
-                    { conversation_id: currentConvId, role: 'user', content: message },
-                    { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { scriptures_used: relevant.map(s => s.source) } }
-                ])
-                
-                if (msgErr) {
-                    console.error('[Persistence] Error inserting messages:', msgErr)
-                } else {
-                    console.log(`[Persistence] Messages saved successfully to conversation: ${currentConvId}`)
+                    await supabaseAdmin.from('messages').insert([
+                        { conversation_id: currentConvId, role: 'user', content: message },
+                        { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { model: modelUsed } }
+                    ])
                 }
             } else {
-                console.warn('[Persistence] Skipping message insertion: Invalid conversation ID')
+                await supabaseAdmin.from('messages').insert([
+                    { conversation_id: currentConvId, role: 'user', content: message },
+                    { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { model: modelUsed } }
+                ])
             }
-        } else {
-            console.log('[Persistence] User not authenticated, skipping save.')
         }
 
         const { english: reply_english, hindi: reply_hindi } = splitBilingualReply(reply)
-
-        // Choose which block to surface based on the selected language
         const displayConf = LANG_CONFIG[langId] ?? LANG_CONFIG['en']
         const displayReply = displayConf.displayBlock === 'hindi' && reply_hindi ? reply_hindi : reply_english
         const parts = parseAIResponse(displayReply)
@@ -428,6 +368,6 @@ export async function POST(req: NextRequest) {
         })
     } catch (err) {
         console.error('Chat API error:', err)
-        return NextResponse.json({ detail: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
+        return NextResponse.json({ detail: 'Unknown error' }, { status: 500 })
     }
 }
