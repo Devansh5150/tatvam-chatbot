@@ -132,15 +132,22 @@ IMPORTANT: Please write your reply in the language specified below. DO NOT use [
 ${LANG_INSTRUCTION[language] ?? ''}`
 
 const LANG_CONFIG: Record<string, { apiCode: string; displayBlock: 'english' | 'hindi' }> = {
-  'en':  { apiCode: 'en-IN',   displayBlock: 'english' },
-  'hi':  { apiCode: 'hi-IN',   displayBlock: 'hindi'   },
-  'hin': { apiCode: 'hinglish',displayBlock: 'english'  }, 
-  'sa':  { apiCode: 'sa',      displayBlock: 'english'  }, 
-  'pa':  { apiCode: 'pa-IN',   displayBlock: 'hindi'   },
-  'gu':  { apiCode: 'gu-IN',   displayBlock: 'hindi'   },
-  'ta':  { apiCode: 'ta-IN',   displayBlock: 'hindi'   },
-  'mr':  { apiCode: 'mr-IN',   displayBlock: 'hindi'   },
-  'bn':  { apiCode: 'bn-IN',   displayBlock: 'hindi'   },
+  'en':    { apiCode: 'en-IN',    displayBlock: 'english' },
+  'en-IN': { apiCode: 'en-IN',    displayBlock: 'english' },
+  'hi':    { apiCode: 'hi-IN',    displayBlock: 'hindi'   },
+  'hi-IN': { apiCode: 'hi-IN',    displayBlock: 'hindi'   },
+  'hin':   { apiCode: 'hinglish', displayBlock: 'english' },
+  'sa':    { apiCode: 'sa',       displayBlock: 'english' },
+  'pa':    { apiCode: 'pa-IN',    displayBlock: 'hindi'   },
+  'pa-IN': { apiCode: 'pa-IN',    displayBlock: 'hindi'   },
+  'gu':    { apiCode: 'gu-IN',    displayBlock: 'hindi'   },
+  'gu-IN': { apiCode: 'gu-IN',    displayBlock: 'hindi'   },
+  'ta':    { apiCode: 'ta-IN',    displayBlock: 'hindi'   },
+  'ta-IN': { apiCode: 'ta-IN',    displayBlock: 'hindi'   },
+  'mr':    { apiCode: 'mr-IN',    displayBlock: 'hindi'   },
+  'mr-IN': { apiCode: 'mr-IN',    displayBlock: 'hindi'   },
+  'bn':    { apiCode: 'bn-IN',    displayBlock: 'hindi'   },
+  'bn-IN': { apiCode: 'bn-IN',    displayBlock: 'hindi'   },
 }
 
 const SYSTEM_PROMPT = (userName: string = 'Seeker', userMessageCount: number = 1, language: string = 'en-IN') => `You are Tatvam — a living voice of Indian mythology and scripture. You speak as one who has witnessed the great cosmic drama.
