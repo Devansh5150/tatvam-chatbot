@@ -41,7 +41,7 @@ export default function LoginPage() {
             localStorage.setItem('tatvam_token', data.access_token)
             localStorage.setItem('tatvam_user', JSON.stringify(data.user))
             window.location.href = '/dashboard'
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message)
             setIsLoading(false)
         }
@@ -50,9 +50,9 @@ export default function LoginPage() {
     return (
         <main className="min-h-screen bg-[#080706] flex flex-col items-center justify-center relative overflow-hidden py-12">
             {/* Header - Fixed to top for better centering of the portal effect */}
-            <div className="absolute top-12 z-20 w-full text-center pointer-events-none">
+            <div className="absolute top-10 left-10 z-20 pointer-events-none">
                 <a href="/" className="inline-block pointer-events-auto" aria-label="Return to home">
-                    <span className="font-serif text-foreground/40 text-sm tracking-[0.3em] uppercase hover:text-accent transition-colors">
+                    <span className="font-serif text-foreground/40 text-[10px] md:text-sm tracking-[0.3em] uppercase hover:text-accent transition-colors">
                         ← Tatvam
                     </span>
                 </a>
@@ -164,21 +164,31 @@ export default function LoginPage() {
                                     setIsLoading(true)
                                     setError(null)
                                     try {
-                                        const response = await fetch('/api/auth/login', {
+                                        let response = await fetch('/api/auth/login', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ email: 'tatvam_llm@dev.com', password: 'tatvam123' }),
                                         })
-                            
-                                        const data = await response.json()
+
+                                        let data = await response.json()
+
+                                        // If login fails (e.g. user doesn't exist in Supabase), seed it by signing up
+                                        if (!response.ok) {
+                                            response = await fetch('/api/auth/signup', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ name: 'LLM Dev User', email: 'tatvam_llm@dev.com', password: 'tatvam123' }),
+                                            })
+                                            data = await response.json()
+                                        }
                             
                                         if (!response.ok) throw new Error(data.detail || 'Something went wrong')
                             
                                         localStorage.setItem('tatvam_token', data.access_token)
                                         localStorage.setItem('tatvam_user', JSON.stringify(data.user))
                                         window.location.href = '/dashboard'
-                                    } catch (err: any) {
-                                        setError('Dev Login Failed: You may need to restart the backend to seed the dev user.')
+                                    } catch (err) {
+                                        setError('Dev Login Failed: ' + err.message)
                                         setIsLoading(false)
                                     }
                                 }}
