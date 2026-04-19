@@ -453,6 +453,10 @@ export default function MonkAvatar({ state, onClick }: { state: PortalState; onC
 
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(circle at center, transparent 35%, rgba(8,7,6,0.9) 75%, rgba(0,0,0,1) 100%)' }} />
+
+      {/* Bottom fade — monk dissolves into darkness */}
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{ height: '35%', background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 40%, transparent 100%)' }} />
     </div>
   )
 }

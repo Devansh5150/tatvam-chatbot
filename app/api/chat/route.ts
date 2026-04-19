@@ -286,6 +286,26 @@ export async function POST(req: NextRequest) {
 
         if (!message) return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
 
+        // ── Off-topic guard ───────────────────────────────────────────────────
+        // Allow list: only spiritual / emotional / life topics pass through
+        const ALLOWED = /\b(dharma|karma|life|soul|atman|peace|purpose|meaning|god|divine|prayer|meditation|mantra|gita|ramayana|mahabharata|vedas|upanishad|scripture|shlok|bhagavad|krishna|rama|hanuman|shiva|devi|brahma|vishnu|moksha|liberation|suffering|pain|grief|loss|anger|fear|anxiety|lonely|love|relationship|family|duty|death|rebirth|maya|illusion|truth|self|ego|mind|heart|faith|devotion|bhakti|yoga|wisdom|sin|virtue|forgiveness|attachment|detachment|surrender|guidance|confused|lost|sad|happy|hurt|heal|spiritual|emotion|feel|feeling|struggle|path|journey|seeker|help me|why am i|what is life|who am i|inner|outer|universe|energy|chakra|prana|consciousness|awareness|present|moment|gratitude|compassion|kindness|patience|strength|courage|hope|despair|worry|stress|overwhelm|burnout|purpose|calling|destiny|fate|free will|choice|action|result|success|failure|right|wrong|good|evil|light|darkness|silence|joy|bliss|peace of mind)\b/i
+
+        const isSpiritual = ALLOWED.test(message)
+        const isGreeting  = /^(hi|hello|hey|namaste|hii|helo|jai|pranam|satsriakal|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho|who are you|what are you|tell me about yourself)\b/i.test(message.trim())
+
+        if (!isSpiritual && !isGreeting) {
+            const redirect = language === 'hi-IN'
+                ? 'मैं तत्त्वम् हूँ — केवल आत्मा, धर्म, जीवन और भावनाओं की बात कर सकता हूँ। कोई आध्यात्मिक या हृदय की बात कहें।'
+                : 'I am Tatvam — I speak only of the soul, dharma, emotions, and life\'s deeper questions. I cannot help with that. What weighs on your heart?'
+            return NextResponse.json({
+                reply: redirect,
+                reply_english: redirect,
+                reply_hindi: language === 'hi-IN' ? redirect : '',
+                model: 'guard',
+            })
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         // Skip auth lookup — saves ~200ms per request
         const userId: string | null = null
 

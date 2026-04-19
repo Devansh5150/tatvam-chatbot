@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'motion/react'
 import dynamic from 'next/dynamic'
-import { RotateCcw } from 'lucide-react'
 import { ShootingStars } from '@/components/ui/shooting-stars'
 import { StarsBackground } from '@/components/ui/stars-background'
 import { useVoiceInteraction } from '@/hooks/use-voice-interaction'
@@ -422,14 +421,6 @@ export default function PortalPage() {
               )}
             </AnimatePresence>
 
-            <AnimatePresence>
-              {replayReady && status === 'listening' && (englishAudioUrl || hindiAudioUrl) && (
-                <motion.div key="replay" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-3 justify-center">
-                  {englishAudioUrl && <button onClick={playEnglish} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300/70 hover:bg-amber-500/20 hover:text-amber-300 transition-all text-[11px] tracking-wide"><RotateCcw size={10} /> English</button>}
-                  {hindiAudioUrl && <button onClick={playHindi} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/35 hover:bg-white/10 hover:text-white/60 transition-all text-[11px] tracking-wide"><RotateCcw size={10} /> हिंदी</button>}
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             <AnimatePresence>
               {status === 'idle' && !userText && !replayReady && !apiError && (
@@ -476,7 +467,18 @@ export default function PortalPage() {
 
           <div className="w-px h-5 bg-white/10" />
 
-          <button onClick={() => router.push('/dashboard')} className="px-5 py-2.5 rounded-xl text-white/30 hover:text-white/70 text-sm transition-all hover:bg-white/5 border border-transparent hover:border-white/10">
+          <button
+            onClick={() => {
+              btsCancelRef.current = true
+              stopListening()
+              cancelSpeech()
+              stopTracking()
+              window.speechSynthesis?.cancel()
+              if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+              router.push('/dashboard')
+            }}
+            className="px-5 py-2.5 rounded-xl text-white/30 hover:text-white/70 text-sm transition-all hover:bg-white/5 border border-transparent hover:border-white/10"
+          >
             Exit Portal
           </button>
         </motion.div>
