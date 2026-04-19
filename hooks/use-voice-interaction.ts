@@ -28,6 +28,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const retryCountRef   = useRef(0)
+  const isSpeakingRef   = useRef(false)
   
   // Keep the ref in sync with state for use in callbacks
   useEffect(() => { 
