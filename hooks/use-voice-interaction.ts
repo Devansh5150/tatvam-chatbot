@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 interface VoiceInteractionResult {
   isListening: boolean
@@ -15,203 +15,168 @@ interface VoiceInteractionResult {
 }
 
 export function useVoiceInteraction(): VoiceInteractionResult {
-  const [isListening, setIsListening]           = useState(false)
-  const [isSpeaking, setIsSpeaking]             = useState(false)
-  const [transcript, setTranscript]             = useState('')
-  const [interimTranscript, setInterimTranscript] = useState('')
-  const [error, setError]                       = useState<string | null>(null)
+  const [isListening, setIsListening]               = useState(false)
+  const [isSpeaking, setIsSpeaking]                 = useState(false)
+  const [transcript, setTranscript]                 = useState('')
+  const [interimTranscript, setInterimTranscript]   = useState('')
+  const [error, setError]                           = useState<string | null>(null)
 
-  const recognitionRef  = useRef<any>(null)
-  const synthRef        = useRef<SpeechSynthesis | null>(null)
-  const audioRef        = useRef<HTMLAudioElement | null>(null)
-  const isActiveRef     = useRef(false)   // true = we WANT recognition running
-  const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastStartTimeRef = useRef<number>(0)
-  const fastFailCountRef = useRef<number>(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef   = useRef<Blob[]>([])
+  const streamRef        = useRef<MediaStream | null>(null)
+  const audioRef         = useRef<HTMLAudioElement | null>(null)
+  const synthRef         = useRef<SpeechSynthesis | null>(null)
+  const isSpeakingRef    = useRef(false)
+  const langRef          = useRef('en-IN')
 
-  const retryCountRef        = useRef(0)
-  const isSpeakingRef        = useRef(false)
-  const lastErrorRef         = useRef<string | null>(null)
-  const networkErrorCountRef = useRef(0)
-  
-  // Keep the ref in sync with state for use in callbacks
-  useEffect(() => { 
-    isSpeakingRef.current = isSpeaking 
-  }, [isSpeaking])
-
-  // ── Safe start (catches InvalidStateError if already running) ──────────
-  const safeStart = useCallback(() => {
-    if (!recognitionRef.current || !isActiveRef.current || isSpeakingRef.current) return
-    
-    if (retryCountRef.current >= 6) {
-      console.error('[Voice] Auto-stopped: High failure rate (6 strikes). Tap orb to retry.')
-      setError('Connection with microphone unstable. Tap the monk orb to retry.')
-      isActiveRef.current = false
-      setIsListening(false)
-      return
-    }
-
-    try {
-      console.log(`[Voice] Attempting STT start. (Try ${retryCountRef.current + 1}/3)`)
-      recognitionRef.current.start()
-      lastStartTimeRef.current = Date.now()
-    } catch (e) {
-      if ((e as DOMException).name === 'InvalidStateError') return // already running — fine
-      console.warn('STT start error:', (e as Error).message)
-      retryCountRef.current++
-      
-      // Exponential backoff or just a longer delay for retries
-      if (isActiveRef.current && !isSpeakingRef.current) {
-        retryTimerRef.current = setTimeout(safeStart, 1000)
-      }
-    }
-  }, []) // Removed deps to keep it stable
+  // Silence detection
+  const audioCtxRef      = useRef<AudioContext | null>(null)
+  const analyserRef      = useRef<AnalyserNode | null>(null)
+  const silenceTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const silenceCountRef  = useRef(0)
+  const hasSpokenRef     = useRef(false)
+  const maxTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window !== 'undefined') synthRef.current = window.speechSynthesis
+    return () => { teardown(); audioRef.current?.pause() }
+  }, [])
 
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  useEffect(() => { isSpeakingRef.current = isSpeaking }, [isSpeaking])
 
-    if (!SpeechRecognition) {
-      setError('Speech recognition not supported in this browser.')
-      return
+  const teardown = useCallback(() => {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+    if (maxTimerRef.current)     { clearTimeout(maxTimerRef.current);     maxTimerRef.current = null }
+    if (audioCtxRef.current)     { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null }
+    analyserRef.current = null
+    if (streamRef.current)       { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null }
+  }, [])
+
+  const processAudio = useCallback(async (chunks: Blob[]) => {
+    if (!chunks.length) return
+    const blob = new Blob(chunks, { type: 'audio/webm' })
+    if (blob.size < 500) return
+
+    const form = new FormData()
+    form.append('audio', blob, 'audio.webm')
+    form.append('lang', langRef.current)
+
+    try {
+      const res  = await fetch('/api/stt', { method: 'POST', body: form })
+      const data = await res.json()
+      if (data.transcript?.trim()) setTranscript(data.transcript.trim())
+    } catch (e) {
+      console.error('[STT] Transcription error:', e)
+      setError('Could not transcribe. Try again.')
     }
+  }, [])
 
-    const recognition = new SpeechRecognition()
-    recognition.continuous     = true   // session stays open — no per-utterance restart dance
-    recognition.interimResults = true
-    recognition.lang           = 'en-IN'
+  const startSilenceDetection = useCallback((stream: MediaStream, recorder: MediaRecorder) => {
+    try {
+      const ctx      = new AudioContext()
+      const source   = ctx.createMediaStreamSource(stream)
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 256
+      source.connect(analyser)
+      audioCtxRef.current   = ctx
+      analyserRef.current   = analyser
+      silenceCountRef.current = 0
+      hasSpokenRef.current    = false
 
-    recognition.onstart = () => {
-      console.log('[Voice] STT started successfully.')
-      setIsListening(true)
-      setError(null)
-      retryCountRef.current    = 0
-      fastFailCountRef.current = 0  // hardware works — clear crash history
-      networkErrorCountRef.current = 0
-      lastErrorRef.current     = null
-    }
+      const freqData = new Uint8Array(analyser.frequencyBinCount)
 
-    recognition.onresult = (event: any) => {
-      let interim = ''
-      let final   = ''
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) final   += event.results[i][0].transcript
-        else                          interim += event.results[i][0].transcript
-      }
-      if (final)   { setTranscript(final); setInterimTranscript('') }
-      else if (interim) setInterimTranscript(interim)
-    }
+      const check = () => {
+        if (!analyserRef.current || recorder.state !== 'recording') return
+        analyserRef.current.getByteFrequencyData(freqData)
+        const avg = freqData.reduce((a, b) => a + b, 0) / freqData.length
 
-    recognition.onerror = (event: any) => {
-      const { error: err } = event
-      console.warn('[Voice] STT error:', err)
-      lastErrorRef.current = err
-      
-      if (err === 'no-speech' || err === 'aborted') return  // normal, onend will handle if isActive
-
-      if (err !== 'network') {
-        retryCountRef.current++ // Only count non-network errors as potential crashes
-      }
-
-      if (err === 'not-allowed' || err === 'service-not-allowed') {
-        const msg = err === 'not-allowed' ? 'Microphone permission denied.' : 'Speech service blocked.'
-        setError(msg)
-        isActiveRef.current = false
-        setIsListening(false)
-        return
-      }
-    }
-
-    recognition.onend = () => {
-      const sessionDuration = Date.now() - lastStartTimeRef.current
-      console.log(`[Voice] STT session ended. Duration: ${sessionDuration}ms`)
-      setIsListening(false)
-
-      if (!isActiveRef.current) return
-
-      // ── Network errors: handled separately, never affect crash detection ──
-      if (lastErrorRef.current === 'network') {
-        networkErrorCountRef.current++
-        console.warn(`[Voice] Network error (${networkErrorCountRef.current}/4). Retrying...`)
-        if (networkErrorCountRef.current >= 4) {
-          isActiveRef.current = false
-          networkErrorCountRef.current = 0
-          setError('Speech service unreachable. Check your connection and tap to retry.')
-          return
+        if (avg > 12) {
+          hasSpokenRef.current    = true
+          silenceCountRef.current = 0
+        } else if (hasSpokenRef.current) {
+          silenceCountRef.current++
+          if (silenceCountRef.current >= 35) { // ~1.75s silence after speech
+            if (recorder.state === 'recording') recorder.stop()
+            return
+          }
         }
-        retryTimerRef.current = setTimeout(safeStart, 2000)
-        return
+        silenceTimerRef.current = setTimeout(check, 50)
       }
 
-      // ── Crash detection (hardware/browser errors only) ────────────────────
-      networkErrorCountRef.current = 0  // reset on any non-network session
-      const isMutedError  = lastErrorRef.current === 'no-speech' || lastErrorRef.current === 'aborted'
-      const hasActualError = lastErrorRef.current !== null && !isMutedError
+      silenceTimerRef.current = setTimeout(check, 200)
 
-      if (sessionDuration < 800 && hasActualError) {
-        fastFailCountRef.current++
-        console.warn(`[Voice] Fast-fail (Likely Crash) detected (${fastFailCountRef.current}/5)`)
-      } else {
-        fastFailCountRef.current = 0
-      }
-
-      if (fastFailCountRef.current >= 5) {
-        console.error('[Voice] Stability safeguard triggered.')
-        isActiveRef.current = false
-        setError('Microphone stability lost. Reconnecting in 5s...')
-        setTimeout(() => {
-          setError(null)
-          fastFailCountRef.current = 0
-          isActiveRef.current = true  // re-enable before retry
-          safeStart()
-        }, 5000)
-        return
-      }
-
-      if (!isSpeakingRef.current) {
-        retryTimerRef.current = setTimeout(safeStart, 1000)
-      }
+      // Hard cap: 30s
+      maxTimerRef.current = setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop()
+      }, 30000)
+    } catch (e) {
+      console.warn('[STT] Silence detection unavailable:', e)
     }
+  }, [])
 
-    recognitionRef.current = recognition
-    synthRef.current       = window.speechSynthesis
-
-    return () => {
-      isActiveRef.current = false
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-      recognition.abort()
-      synthRef.current?.cancel()
-      audioRef.current?.pause()
-    }
-  }, [safeStart]) // Stable deps
-
-  // ── Public controls ──────────────────────────────────────────────────────
-
-  const startListening = useCallback((lang: string = 'en-IN') => {
-    if (!recognitionRef.current) return
-    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
-    
-    // Manual start resets everything
-    isActiveRef.current          = true
-    retryCountRef.current        = 0
-    fastFailCountRef.current     = 0
-    networkErrorCountRef.current = 0
+  const startListening = useCallback(async (lang = 'en-IN') => {
+    if (isSpeakingRef.current) return
+    langRef.current = lang
     setError(null)
-    
-    recognitionRef.current.lang = lang
-    safeStart()
-  }, [safeStart])
+    setTranscript('')
+    setInterimTranscript('')
+    audioChunksRef.current = []
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+
+      const recorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data) }
+
+      recorder.onstart = () => {
+        setIsListening(true)
+        setInterimTranscript('Listening…')
+      }
+
+      recorder.onstop = async () => {
+        teardown()
+        setInterimTranscript('Processing…')
+        const chunks = [...audioChunksRef.current]
+        audioChunksRef.current = []
+        await processAudio(chunks)
+        setInterimTranscript('')
+        setIsListening(false)
+      }
+
+      recorder.onerror = () => {
+        teardown()
+        setIsListening(false)
+        setInterimTranscript('')
+        setError('Recording failed. Please try again.')
+      }
+
+      recorder.start(100)
+      startSilenceDetection(stream, recorder)
+
+    } catch (e: any) {
+      setIsListening(false)
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        setError('Microphone access blocked. Please allow mic in browser settings.')
+      } else {
+        setError('Could not access microphone.')
+      }
+    }
+  }, [processAudio, startSilenceDetection, teardown])
 
   const stopListening = useCallback(() => {
-    isActiveRef.current = false
-    fastFailCountRef.current = 0
-    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
-    setIsListening(false)
-    setInterimTranscript('')
-    recognitionRef.current?.abort()
-  }, [])
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+    if (maxTimerRef.current)     { clearTimeout(maxTimerRef.current);     maxTimerRef.current = null }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    } else {
+      teardown()
+      setIsListening(false)
+      setInterimTranscript('')
+    }
+  }, [teardown])
 
   const cancelSpeech = useCallback(() => {
     synthRef.current?.cancel()
@@ -219,7 +184,27 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     setIsSpeaking(false)
   }, [])
 
-  const speak = useCallback(async (text: string, lang: string = 'en-IN'): Promise<void> => {
+  const speakFallback = useCallback((text: string): Promise<void> =>
+    new Promise((resolve) => {
+      if (!synthRef.current) { resolve(); return }
+      synthRef.current.cancel()
+      const utt    = new SpeechSynthesisUtterance(text)
+      utt.lang     = 'en-GB'
+      utt.pitch    = 0.78
+      utt.rate     = 0.82
+      utt.volume   = 1
+      const voices = synthRef.current.getVoices()
+      const voice  = voices.find(v => v.name === 'Google UK English Male') ||
+                     voices.find(v => v.name.startsWith('Google') && v.lang.startsWith('en')) ||
+                     voices.find(v => v.lang.startsWith('en'))
+      if (voice) utt.voice = voice
+      utt.onstart = () => setIsSpeaking(true)
+      utt.onend   = () => { setIsSpeaking(false); resolve() }
+      utt.onerror = () => { setIsSpeaking(false); resolve() }
+      synthRef.current.speak(utt)
+    }), [])
+
+  const speak = useCallback(async (text: string, _lang = 'en-IN'): Promise<void> => {
     try {
       setIsSpeaking(true)
       const response = await fetch('/api/tts', {
@@ -227,7 +212,6 @@ export function useVoiceInteraction(): VoiceInteractionResult {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       })
-
       if (response.ok) {
         const audioUrl = URL.createObjectURL(await response.blob())
         return new Promise((resolve) => {
@@ -240,33 +224,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
         })
       }
     } catch (e) {
-      console.error('TTS fetch error:', e)
+      console.error('[TTS] Error:', e)
     }
-
     return speakFallback(text)
-  }, [])
-
-  const speakFallback = (text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!synthRef.current) { resolve(); return }
-      synthRef.current.cancel()
-      const utt    = new SpeechSynthesisUtterance(text)
-      utt.lang     = 'en-GB'
-      utt.pitch    = 0.78
-      utt.rate     = 0.82
-      utt.volume   = 1
-      const voices = synthRef.current.getVoices()
-      const voice  =
-        voices.find(v => v.name === 'Google UK English Male') ||
-        voices.find(v => v.name.startsWith('Google') && v.lang.startsWith('en')) ||
-        voices.find(v => v.lang.startsWith('en'))
-      if (voice) utt.voice = voice
-      utt.onstart = () => setIsSpeaking(true)
-      utt.onend   = () => { setIsSpeaking(false); resolve() }
-      utt.onerror = () => { setIsSpeaking(false); resolve() }
-      synthRef.current.speak(utt)
-    })
-  }
+  }, [speakFallback])
 
   return { isListening, isSpeaking, transcript, interimTranscript, error, startListening, stopListening, speak, cancelSpeech }
 }

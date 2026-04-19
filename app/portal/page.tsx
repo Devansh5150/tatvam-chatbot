@@ -142,11 +142,11 @@ export default function PortalPage() {
   useEffect(() => { if (transcript) setUserText(transcript) }, [transcript])
 
   useEffect(() => {
-    if (transcript && transcript !== processedRef.current && !isProcessingRef.current && isListening) {
+    if (transcript && transcript !== processedRef.current && !isProcessingRef.current) {
       processedRef.current = transcript
       handleConversation(transcript)
     }
-  }, [transcript, isListening])
+  }, [transcript])
 
   const stopTracking = useCallback(() => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
@@ -419,7 +419,7 @@ export default function PortalPage() {
           <div className="w-full min-h-[80px] flex flex-col items-center justify-center gap-3 px-4 mt-1">
 
             <AnimatePresence mode="wait">
-              {(isListening || status === 'thinking') && userText && (
+              {(isListening || status === 'thinking' || interimTranscript) && userText && (
                 <motion.div key="user-text" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="w-full text-center">
                   <p className="text-white/30 text-[9px] uppercase tracking-widest mb-1">You said</p>
                   <p className={`text-sm leading-relaxed ${status === 'thinking' ? 'text-white/45' : 'text-white/75'}`}>"{userText}"</p>
