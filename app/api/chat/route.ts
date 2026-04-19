@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { createServerSideClient, supabaseAdmin } from '@/lib/supabase'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -309,8 +309,14 @@ export async function POST(req: NextRequest) {
         }
         // ─────────────────────────────────────────────────────────────────────
 
-        // Skip auth lookup — saves ~200ms per request
-        const userId: string | null = null
+        // ── Auth Lookup ──────────────────────────────────────────────────────
+        const supabaseServer = await createServerSideClient()
+        const { data: { user } } = await supabaseServer.auth.getUser()
+        
+        if (!user) {
+            return NextResponse.json({ detail: 'Authentication required' }, { status: 401 })
+        }
+        const userId = user.id
 
         // RAG: skip for short greetings / small talk
         const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i
@@ -422,6 +428,6 @@ export async function POST(req: NextRequest) {
         })
     } catch (err) {
         console.error('Chat API error:', err)
-        return NextResponse.json({ detail: err.message }, { status: 500 })
+        return NextResponse.json({ detail: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
     }
 }

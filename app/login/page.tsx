@@ -38,11 +38,10 @@ export default function LoginPage() {
                 throw new Error(data.detail || 'Something went wrong')
             }
 
-            localStorage.setItem('tatvam_token', data.access_token)
             localStorage.setItem('tatvam_user', JSON.stringify(data.user))
             window.location.href = '/dashboard'
         } catch (err) {
-            setError(err.message)
+            setError(err instanceof Error ? err.message : 'An error occurred')
             setIsLoading(false)
         }
     }
@@ -184,11 +183,10 @@ export default function LoginPage() {
                             
                                         if (!response.ok) throw new Error(data.detail || 'Something went wrong')
                             
-                                        localStorage.setItem('tatvam_token', data.access_token)
                                         localStorage.setItem('tatvam_user', JSON.stringify(data.user))
                                         window.location.href = '/dashboard'
                                     } catch (err) {
-                                        setError('Dev Login Failed: ' + err.message)
+                                        setError('Dev Login Failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
                                         setIsLoading(false)
                                     }
                                 }}

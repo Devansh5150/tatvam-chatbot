@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { createServerSideClient, supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,6 +11,9 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             )
         }
+
+        // Use the Server Client to handle cookies automatically
+        const supabase = await createServerSideClient()
 
         // 1. Sign in with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
             )
         }
 
-        // 2. Fetch profile details (using Admin client for consistency)
+        // 2. Fetch profile details
         const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('name')
@@ -44,14 +47,12 @@ export async function POST(req: NextRequest) {
                 id: authData.user.id,
                 email: authData.user.email,
                 name: profile?.name || 'Seeker'
-            },
-            access_token: authData.session?.access_token,
-            refresh_token: authData.session?.refresh_token
+            }
         })
     } catch (err) {
         console.error('Login error:', err)
         return NextResponse.json(
-            { detail: err.message || 'Something went wrong' },
+            { detail: err instanceof Error ? err.message : 'Something went wrong' },
             { status: 500 }
         )
     }

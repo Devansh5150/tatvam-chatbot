@@ -46,6 +46,6 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(response.body, { headers: { 'Content-Type': 'audio/mpeg' } })
   } catch (err) {
-    return NextResponse.json({ detail: err.message }, { status: 500 })
+    return NextResponse.json({ detail: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 })
   }
 }

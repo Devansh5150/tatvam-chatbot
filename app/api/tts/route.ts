@@ -10,11 +10,6 @@ function cleanText(raw: string): string {
     .trim()
 }
 
-function detectLang(text: string): string {
-  const hindiChars = (text.match(/[\u0900-\u097F]/g) || []).length
-  return hindiChars / text.length > 0.2 ? 'hi-IN' : 'en-IN'
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -34,7 +29,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ detail: 'SARVAM_API_KEY not configured' }, { status: 500 })
     }
 
-    const lang = detectLang(text)
+    // Bulbul:v3 handles Hindi Unicode natively - no more stripping!
+    // We use 'shubh' as the premium male voice. 
+    // We send the first 500 chars to ensure stability, but v3 supports up to 2500.
+    const safeText = text.slice(0, 1000)
 
     const response = await fetch('https://api.sarvam.ai/text-to-speech', {
       method: 'POST',
@@ -43,15 +41,13 @@ export async function POST(req: NextRequest) {
         'api-subscription-key': apiKey,
       },
       body: JSON.stringify({
-        inputs: [text],
-        target_language_code: lang,
-        speaker: 'karun',          // Indian male voice (bulbul:v2 compatible)
-        pitch: 0,
+        text: safeText,
+        model: 'bulbul:v3',
+        target_language_code: 'hi-IN', // Defaults to hi-IN which handles mixed text well
+        speaker: 'shubh',
         pace: 1.0,
-        loudness: 1.5,
-        speech_sample_rate: 22050,
-        enable_preprocessing: true,
-        model: 'bulbul:v2',
+        temperature: 0.6,
+        sample_rate: 24000
       }),
     })
 
@@ -68,7 +64,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ detail: 'No audio returned' }, { status: 500 })
     }
 
-    // Sarvam returns base64 WAV
     const audioBuffer = Buffer.from(b64, 'base64')
     return new NextResponse(audioBuffer, {
       status: 200,

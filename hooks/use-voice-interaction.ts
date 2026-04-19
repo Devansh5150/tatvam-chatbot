@@ -33,7 +33,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     try {
       recognitionRef.current.start()
     } catch (e) {
-      if (e.name === 'InvalidStateError') return // already running — fine
+      if ((e as DOMException).name === 'InvalidStateError') return // already running — fine
       console.error('STT start error:', e)
       // Retry after a short delay for transient errors
       retryTimerRef.current = setTimeout(safeStart, 400)

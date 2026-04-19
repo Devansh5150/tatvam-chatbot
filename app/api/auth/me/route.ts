@@ -1,48 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { createServerSideClient, supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
     try {
-        const authHeader = req.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
+        const supabase = await createServerSideClient()
 
-        if (!token) {
+        // 1. Get user from session (automatically from cookies)
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError || !user) {
             return NextResponse.json(
-                { detail: 'Token required' },
+                { detail: 'Not authenticated' },
                 { status: 401 }
             )
         }
 
-        // 1. Get user from Supabase using the token
-        const { data: { user }, error } = await supabase.auth.getUser(token)
-
-        if (error || !user) {
-            return NextResponse.json(
-                { detail: 'Invalid or expired sacred token' },
-                { status: 401 }
-            )
-        }
-
-        // 2. Fetch profile details using Admin client (bypasses RLS)
-        const { data: profile } = await supabaseAdmin
+        // 2. Fetch profile from DB
+        const { data: profile, error: profileError } = await supabaseAdmin
             .from('profiles')
-            .select('name')
+            .select('name, email')
             .eq('id', user.id)
             .single()
+
+        if (profileError) {
+            return NextResponse.json(
+                {
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        name: 'Seeker'
+                    }
+                }
+            )
+        }
 
         return NextResponse.json({
             user: {
                 id: user.id,
-                email: user.email,
-                name: profile?.name || 'Seeker'
+                email: profile.email,
+                name: profile.name
             }
         })
     } catch (err) {
-        console.error('Me API error:', err)
+        console.error('Me endpoint error:', err)
         return NextResponse.json(
-            { detail: err.message || 'Something went wrong' },
+            { detail: err instanceof Error ? err.message : 'Something went wrong' },
             { status: 500 }
         )
     }
 }
-

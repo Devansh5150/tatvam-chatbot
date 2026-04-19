@@ -1,41 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { createServerSideClient, supabaseAdmin } from '@/lib/supabase'
 
-export async function GET(req: NextRequest) {
-    try {
-        const authHeader = req.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
-
-        if (!token) {
-            return NextResponse.json({ detail: 'Authentication required' }, { status: 401 })
-        }
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-        if (authError || !user) {
-            return NextResponse.json({ detail: 'Invalid session' }, { status: 401 })
-        }
-
-        // Fetch conversations using Admin Client to bypass RLS (filtered by user.id)
-        const { data: conversations, error: convError } = await supabaseAdmin
-            .from('conversations')
-            .select(`
-                id,
-                title,
-                created_at,
-                messages (
-                    id,
-                    role,
-                    content,
-                    created_at,
-                    metadata
-                )
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-
-        if (convError) {
-            throw convError
-        }
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 interface ResponsePart {
     type: 'chat' | 'acknowledge' | 'scripture' | 'teaching' | 'guidance'
@@ -85,13 +51,47 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
     }
 }
 
+// ─── Route Handlers ───────────────────────────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+    try {
+        const supabase = await createServerSideClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError || !user) {
+            return NextResponse.json({ detail: 'Authentication required' }, { status: 401 })
+        }
+
+        // Fetch conversations using Admin Client to bypass RLS (filtered by user.id)
+        const { data: conversations, error: convError } = await supabaseAdmin
+            .from('conversations')
+            .select(`
+                id,
+                title,
+                created_at,
+                messages (
+                    id,
+                    role,
+                    content,
+                    created_at,
+                    metadata
+                )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+
+        if (convError) {
+            throw convError
+        }
+
         // Format to match frontend structure
-        const formatted = conversations.map(c => {
+        const formatted = (conversations || []).map(c => {
             const allMessages: any[] = [];
             
-            c.messages.sort((a: any, b: any) => 
-                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            ).forEach((m: any) => {
+            if (c.messages) {
+                c.messages.sort((a: any, b: any) => 
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                ).forEach((m: any) => {
                 if (m.role === 'user') {
                     allMessages.push({
                         id: m.id,
@@ -120,6 +120,7 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
                     })
                 }
             })
+            }
 
             return {
                 id: c.id,
@@ -130,7 +131,7 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
         })
 
         return NextResponse.json(formatted)
-    } catch (err) {
+    } catch (err: any) {
         console.error('Conversations fetch error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }
@@ -139,16 +140,11 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
 export async function POST(req: NextRequest) {
     try {
         const { title } = await req.json()
-        const authHeader = req.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
+        const supabase = await createServerSideClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (!token) {
-            return NextResponse.json({ detail: 'Authentication required' }, { status: 401 })
-        }
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
         if (authError || !user) {
-            return NextResponse.json({ detail: 'Invalid session' }, { status: 401 })
+            return NextResponse.json({ detail: 'Authentication required' }, { status: 401 })
         }
 
         const { data: conv, error: convError } = await supabaseAdmin
@@ -163,7 +159,7 @@ export async function POST(req: NextRequest) {
         if (convError) throw convError
 
         return NextResponse.json(conv)
-    } catch (err) {
+    } catch (err: any) {
         console.error('Conversation creation error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }
@@ -172,20 +168,14 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         const { id: conversationId } = await req.json()
-        const authHeader = req.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
+        const supabase = await createServerSideClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (!token || !conversationId) {
+        if (authError || !user || !conversationId) {
             return NextResponse.json({ detail: 'Authentication and ID required' }, { status: 401 })
         }
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-        if (authError || !user) {
-            return NextResponse.json({ detail: 'Invalid session' }, { status: 401 })
-        }
-
         // Delete associated messages first (Manual Cascade)
-        console.log(`[Delete] Attempting to delete messages for conversation: ${conversationId}`)
         const { error: msgDelError } = await supabaseAdmin
             .from('messages')
             .delete()
@@ -193,11 +183,9 @@ export async function DELETE(req: NextRequest) {
 
         if (msgDelError) {
             console.error(`[Delete] Error deleting messages for conversation ${conversationId}:`, msgDelError)
-            // We continue anyway to attempt conversation deletion, as messages might already be empty
         }
 
         // Delete conversation
-        console.log(`[Delete] Attempting to delete conversation: ${conversationId} for user: ${user.id}`)
         const { error: delError, count } = await supabaseAdmin
             .from('conversations')
             .delete({ count: 'exact' })
@@ -210,14 +198,11 @@ export async function DELETE(req: NextRequest) {
         }
 
         if (count === 0) {
-            console.warn(`[Delete] No conversation found with ID ${conversationId} for user ${user.id}`)
             return NextResponse.json({ success: false, detail: 'Reflection not found or already released.' })
         }
 
-        console.log(`[Delete] Successfully deleted conversation: ${conversationId}`)
-
         return NextResponse.json({ success: true })
-    } catch (err) {
+    } catch (err: any) {
         console.error('Conversation delete error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }

@@ -99,9 +99,10 @@ export default function PortalPage() {
   const sentencesRef  = useRef<string[]>([])
   const prevEngUrl    = useRef<string | null>(null)
   const prevHinUrl    = useRef<string | null>(null)
-  const processedRef  = useRef('')
-  const statusRef     = useRef<PortalState>('connecting')
-  const btsCancelRef  = useRef(false)
+  const processedRef    = useRef('')
+  const statusRef       = useRef<PortalState>('connecting')
+  const btsCancelRef    = useRef(false)
+  const isProcessingRef = useRef(false)
 
   useEffect(() => { statusRef.current = status }, [status])
 
@@ -123,11 +124,16 @@ export default function PortalPage() {
     return () => {
       clearTimeout(t)
       btsCancelRef.current = true
+      isProcessingRef.current = false
       cancelSpeech()
       stopListening()
       stopTracking()
-      if (audioRef.current) audioRef.current.pause()
-      window.speechSynthesis?.cancel()
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+      // Chrome bug: cancel() alone sometimes doesn't stop speaking; pause+cancel fixes it
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.pause()
+        window.speechSynthesis.cancel()
+      }
     }
   }, [])
 
@@ -135,11 +141,11 @@ export default function PortalPage() {
   useEffect(() => { if (transcript) setUserText(transcript) }, [transcript])
 
   useEffect(() => {
-    if (transcript && transcript !== processedRef.current && statusRef.current === 'listening') {
+    if (transcript && transcript !== processedRef.current && !isProcessingRef.current && isListening) {
       processedRef.current = transcript
       handleConversation(transcript)
     }
-  }, [transcript])
+  }, [transcript, isListening])
 
   const stopTracking = useCallback(() => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null }
@@ -171,7 +177,7 @@ export default function PortalPage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        console.error('[TTS] ElevenLabs failed:', res.status, err)
+        console.error('[TTS] Sarvam failed:', res.status, err)
         return null
       }
       const buf = await res.arrayBuffer()
@@ -228,6 +234,15 @@ export default function PortalPage() {
     }), [])
 
   const handleConversation = async (text: string) => {
+    if (isProcessingRef.current) return
+    isProcessingRef.current = true
+
+    // Kill any ongoing browser TTS before starting
+    btsCancelRef.current = true
+    window.speechSynthesis?.pause()
+    window.speechSynthesis?.cancel()
+    if (audioRef.current) { audioRef.current.pause() }
+
     stopListening()
     setStatus('thinking')
     setApiError(null)
@@ -250,7 +265,7 @@ export default function PortalPage() {
       const hindiText: string   = data.reply_hindi || ''
       if (!englishText && !hindiText) throw new Error('Empty reply from AI')
 
-      const useLocalised = langRef.current !== 'en-IN' && langRef.current !== 'hinglish' && !!hindiText
+      const useLocalised = langRef.current !== 'en-IN' && !!hindiText
       const primaryText  = useLocalised ? hindiText : englishText
       const sents = splitSentences(primaryText)
       sentencesRef.current = sents
@@ -279,12 +294,15 @@ export default function PortalPage() {
       setCurrentIdx(-1)
       setReplayReady(!!engUrl)
       setStatus('listening')
-      startListening(getSttLang())
+      // Small delay lets the browser fully release the previous audio/recognition session
+      setTimeout(() => startListening(getSttLang()), 300)
 
     } catch (err: unknown) {
       console.error('Conversation error:', err)
       setApiError(err instanceof Error ? err.message : 'Something went wrong')
       setStatus('idle')
+    } finally {
+      isProcessingRef.current = false
     }
   }
 
@@ -470,11 +488,13 @@ export default function PortalPage() {
           <button
             onClick={() => {
               btsCancelRef.current = true
+              isProcessingRef.current = false
               stopListening()
               cancelSpeech()
               stopTracking()
-              window.speechSynthesis?.cancel()
               if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+              window.speechSynthesis?.pause()
+              window.speechSynthesis?.cancel()
               router.push('/dashboard')
             }}
             className="px-5 py-2.5 rounded-xl text-white/30 hover:text-white/70 text-sm transition-all hover:bg-white/5 border border-transparent hover:border-white/10"

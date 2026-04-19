@@ -13,7 +13,6 @@ export default function ProfilePage() {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        const token = localStorage.getItem('tatvam_token')
         const userStr = localStorage.getItem('tatvam_user')
 
         if (userStr) {
@@ -25,11 +24,8 @@ export default function ProfilePage() {
         }
 
         const fetchStats = async () => {
-            if (!token) return
             try {
-                const response = await fetch('/api/conversations', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
+                const response = await fetch('/api/conversations')
                 if (response.ok) {
                     const convs = await response.json()
                     setStats({

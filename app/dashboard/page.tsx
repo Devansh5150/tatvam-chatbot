@@ -398,12 +398,14 @@ function SettingsPanel({ onClose, onLogout, volume, onVolumeChange }: { onClose:
 
 // ─── Sidebar Btn ──────────────────────────────────────────────────────────────
 
-function HistoryPanel({ 
-    onClose, 
-    conversations, 
-    activeId, 
-    onSelect 
-}: { 
+function HistoryPanel({
+    onClose,
+    conversations,
+    activeId,
+    onSelect,
+    onRemove,
+    onNew,
+}: {
     onClose: () => void; 
     conversations: Conversation[]; 
     activeId: string | null; 
@@ -693,14 +695,14 @@ function MessageBubble({ message }: { message: Message }) {
         )
     }
 
-    if (message.type === 'meaning' || message.type === 'acknowledge') {
+    if (message.type === 'meaning') {
         return (
              <div className="mb-6 flex gap-4 pr-12">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 flex-shrink-0 mt-1 shadow-sm opacity-0" />
                 <div className="max-w-2xl bg-muted border border-border rounded-2xl px-8 py-7 shadow-sm">
                     <div className="space-y-4">
                         <p className="text-zinc-400 text-[10px] tracking-[0.2em] uppercase mb-4 font-sans font-semibold">
-                            {message.type === 'acknowledge' ? t('reflectionLabel') : t('understanding')}
+                            {t('understanding')}
                         </p>
                         <div className="text-foreground/90 text-lg leading-relaxed font-sans">
                             <WordReveal text={message.content} delay={0.2} />
@@ -752,13 +754,8 @@ export default function DashboardPage() {
     const chatContainerRef = useRef<HTMLDivElement>(null)
 
     const fetchConversations = async () => {
-        const token = localStorage.getItem('tatvam_token')
-        if (!token) return
-
         try {
-            const response = await fetch('/api/conversations', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
+            const response = await fetch('/api/conversations')
             if (response.ok) {
                 const data = await response.json()
                 setConversations(data)
@@ -869,13 +866,7 @@ export default function DashboardPage() {
 
     // Auth check
     useEffect(() => {
-        const token = localStorage.getItem('tatvam_token')
         const userStr = localStorage.getItem('tatvam_user')
-
-        if (!token) {
-            window.location.href = '/login'
-            return
-        }
 
         if (userStr) {
             try {
@@ -940,18 +931,13 @@ export default function DashboardPage() {
         ]
 
         try {
-            const token = localStorage.getItem('tatvam_token')
-            if (token) {
-                const response = await fetch('/api/conversations', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ 
-                        title: type === 'daily' ? "Daily Reflection" : "New Reflection"
-                    })
+            const response = await fetch('/api/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    title: type === 'daily' ? "Daily Reflection" : "New Reflection"
                 })
+            })
                 
                 if (response.ok) {
                     const dbConv = await response.json()
@@ -966,7 +952,6 @@ export default function DashboardPage() {
                     setIsThinking(false)
                     return
                 }
-            }
         } catch (e) {
             console.error('Failed to persist new conversation:', e)
         }
@@ -1041,13 +1026,9 @@ export default function DashboardPage() {
                 .slice(-10)
                 .map(m => ({ type: m.type, content: m.content }))
 
-            const token = localStorage.getItem('tatvam_token')
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     message: userMessage, 
                     history, 
@@ -1072,7 +1053,7 @@ export default function DashboardPage() {
                     const part = data.parts[i]
                     let msgType: Message['type'] = 'system'
 
-                    if (part.type === 'chat' || part.type === 'acknowledge') msgType = 'bot'
+                    if (part.type === 'chat' || part.type === 'acknowledge') msgType = 'chat'
                     else if (part.type === 'scripture') msgType = 'shlok'
                     else if (part.type === 'teaching') msgType = 'meaning'
                     else if (part.type === 'guidance') msgType = 'reflection'
@@ -1110,7 +1091,7 @@ export default function DashboardPage() {
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 type: 'system',
-                content: err.message || 'The reflection engine is resting. Please try again.',
+                content: (err instanceof Error ? err.message : null) || 'The reflection engine is resting. Please try again.',
                 timestamp: new Date(),
             }
             setMessages(prev => [...prev, errorMsg])
@@ -1120,17 +1101,10 @@ export default function DashboardPage() {
     }
 
     const handleRemoveConversation = async (id: string) => {
-        const token = localStorage.getItem('tatvam_token')
-        if (!token) return
-
-        if (confirm('Are you sure you want to let go of this reflection?')) {
             try {
                 const response = await fetch('/api/conversations', {
                     method: 'DELETE',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 })
                 
@@ -1142,7 +1116,7 @@ export default function DashboardPage() {
                         setActiveConversationId(null)
                         setMessages([])
                     }
-                    toast.success(t('releasedReflection') || 'Reflection released to the universe')
+                    toast.success('Reflection released to the universe')
                 } else {
                     toast.error(data.detail || 'Failed to release reflection')
                 }
@@ -1150,7 +1124,6 @@ export default function DashboardPage() {
                 console.error('Delete error:', e)
                 toast.error('An error occurred while releasing the reflection')
             }
-        }
     }
 
     const handleNewChat = () => {
@@ -1160,7 +1133,6 @@ export default function DashboardPage() {
 
 
     const handleLogout = () => {
-        localStorage.removeItem('tatvam_token')
         localStorage.removeItem('tatvam_user')
         localStorage.removeItem('tatvam_active_bhajan_src')
         localStorage.removeItem('tatvam_volume')
@@ -1180,7 +1152,15 @@ export default function DashboardPage() {
 
     return (
         <div className="h-[100dvh] w-full bg-background flex items-center justify-center p-0 md:p-4 lg:p-6 overflow-hidden transition-colors duration-300">
-            <div className="bg-card md:rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border-0 md:border-0 transition-colors duration-300">
+            <div className="bg-card md:rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border-0 md:border-0 transition-colors duration-300"
+              style={{
+                backgroundImage: 'url(/dashboard-bg.png)',
+                backgroundSize: 'cover',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center center',
+              }}>
+              {/* very light overlay so bg stays subtle */}
+              <div className="absolute inset-0 bg-card/55 pointer-events-none z-0" />
                 {/* Sidebar */}
                 <DashboardSidebar
                     userName={userName}
@@ -1200,7 +1180,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full"
+                            className="h-full relative z-10 bg-card"
                         >
                             <HistoryPanel
                                 onClose={() => setActivePanel(null)}
@@ -1222,7 +1202,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full"
+                            className="h-full relative z-10 bg-card"
                         >
                             <BhajanPanel 
                                 onClose={() => setActivePanel(null)} 
@@ -1238,7 +1218,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full"
+                            className="h-full relative z-10 bg-card"
                         >
                             <ShlokGuidePanel
                                 onClose={() => setActivePanel(null)}
@@ -1253,7 +1233,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full"
+                            className="h-full relative z-10 bg-card"
                         >
                             <SettingsPanel
                                 onClose={() => setActivePanel(null)}
@@ -1266,7 +1246,7 @@ export default function DashboardPage() {
                 </AnimatePresence>
 
                 {/* Main Content */}
-                <main className="flex-1 flex flex-col h-full relative z-10 bg-card transition-colors duration-300">
+                <main className="flex-1 flex flex-col h-full relative z-10 bg-transparent transition-colors duration-300">
 
                     {/* Top Bar */}
                     <header className="flex items-center justify-between px-8 py-5">

@@ -148,7 +148,7 @@ export function useVoiceChat(): VoiceChatResult {
       setState('idle')
     } catch (err) {
       console.error(err)
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'An error occurred')
       setState('idle')
     }
   }

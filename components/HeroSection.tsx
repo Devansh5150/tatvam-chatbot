@@ -73,10 +73,11 @@ export default function HeroSection({ isPlaying = false, onToggleSound }: HeroSe
       {/* Full-Screen Blurred Background with Deep Fade */}
       <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div
-          className="absolute inset-0 bg-cover bg-center scale-110"
+          className="absolute inset-0 bg-cover bg-center scale-110 transition-opacity duration-[3000ms]"
           style={{
-            backgroundImage: "url('/sacred_mythology_hero_bg_1774808391877.png')", // Generated inclusive background
-            filter: 'blur(20px)',
+            backgroundImage: "url('/sacred_hero_bg.png')",
+            filter: 'blur(40px)', // Increased blur for better blending
+            opacity: 0.5, // Let the video shine through
           }}
         />
         {/* Cinematic Vignette */}
