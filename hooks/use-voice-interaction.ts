@@ -122,24 +122,34 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       setIsListening(false)
 
       if (isActiveRef.current) {
-        // VELOCITY CHECK: If it ended too fast (< 1.5s), count as a fast-fail
-        if (sessionDuration < 1500) {
+        // VELOCITY CHECK: Only treat as a "failure" if it was NOT a voluntary silence timeout
+        // and it ended suspiciousy fast (< 800ms)
+        const isMutedError = error === 'no-speech' || error === 'aborted'
+        
+        if (sessionDuration < 800 && !isMutedError) {
           fastFailCountRef.current++
-          console.warn(`[Voice] Fast-fail detected (${fastFailCountRef.current}/3)`)
+          console.warn(`[Voice] Fast-fail (Likely Crash) detected (${fastFailCountRef.current}/3)`)
         } else {
-          fastFailCountRef.current = 0 // Reset on successful long session
+          // If it was just silence or a long session, reset the failure count
+          fastFailCountRef.current = 0 
         }
 
         if (fastFailCountRef.current >= 3) {
-          console.error('[Voice] Infinite loop detected. Killing session.')
+          console.error('[Voice] Stability safeguard triggered.')
           isActiveRef.current = false
-          setError('Microphone stability lost. Please refresh.')
+          setError('Microphone stability lost. Reconnecting in 5s...')
+          
+          // Auto-recovery instead of permanent lock
+          setTimeout(() => {
+            setError(null)
+            fastFailCountRef.current = 0
+            if (isActiveRef.current) safeStart()
+          }, 5000)
           return
         }
 
-        // Only restart if we still want it active AND we aren't currently speaking
         if (!isSpeakingRef.current) {
-          retryTimerRef.current = setTimeout(safeStart, 800)
+          retryTimerRef.current = setTimeout(safeStart, 1000)
         }
       }
     }
