@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic'
 import { RATE_LIMIT, getRemainingMessages, getNextResetTime, recordMessageTimestamp } from '@/lib/utils'
 import { useLanguage } from '@/lib/i18n/LanguageContext'
 import { languages } from '@/lib/i18n/dictionaries'
+import { toast } from 'sonner'
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -108,8 +109,8 @@ function BhajanPanel({ onClose, playingTrack, onToggleTrack }: { onClose: () => 
     const { t } = useLanguage()
     
     return (
-        <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
-            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+        <div className="w-72 h-full bg-card flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5">
                 <div>
                     <h3 className="font-serif text-foreground text-base font-medium">{t('bhajans')}</h3>
                     <p className="text-muted-foreground text-xs mt-0.5 font-sans">{t('mindSoothing')}</p>
@@ -180,8 +181,8 @@ function ShlokGuidePanel({ onClose, onInjectShlok }: { onClose: () => void; onIn
     const { t } = useLanguage()
 
     return (
-        <div className="w-80 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
-            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+        <div className="w-80 h-full bg-card flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5">
                 <div>
                     <h3 className="font-serif text-foreground text-base font-medium">{t('dailyShlokGuide')}</h3>
                     <p className="text-muted-foreground text-xs mt-0.5 font-sans">{t('chooseMood')}</p>
@@ -263,8 +264,8 @@ function SettingsPanel({ onClose, onLogout, volume, onVolumeChange }: { onClose:
     ]
 
     return (
-        <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
-            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+        <div className="w-72 h-full bg-card flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5">
                 <div>
                     <h3 className="font-serif text-foreground text-base font-medium">{t('settings')}</h3>
                     <p className="text-muted-foreground text-xs mt-0.5 font-sans">{t('personaliseExperience')}</p>
@@ -372,7 +373,7 @@ function SettingsPanel({ onClose, onLogout, volume, onVolumeChange }: { onClose:
                 {/* Notifications */}
                 <div>
                     <p className="text-[10px] text-muted-foreground font-sans font-semibold uppercase tracking-widest mb-2">{t('notifications')}</p>
-                    <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-border">
+                    <div className="flex items-center justify-between px-4 py-3 rounded-2xl">
                         <span className="text-sm font-sans text-foreground">Daily reminder</span>
                         <div className="w-10 h-6 rounded-full bg-accent/20 relative">
                             <div className="w-4 h-4 rounded-full bg-accent absolute right-1 top-1" />
@@ -414,8 +415,8 @@ function HistoryPanel({
     const { t } = useLanguage()
     
     return (
-        <div className="w-72 h-full bg-card border-r border-border flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
-            <div className="flex items-center justify-between px-5 py-5 border-b border-border">
+        <div className="w-72 h-full bg-card flex flex-col shrink-0 z-10 shadow-sm transition-colors duration-300">
+            <div className="flex items-center justify-between px-5 py-5">
                 <div>
                     <h3 className="font-serif text-foreground text-base font-medium">{t('history')}</h3>
                     <p className="text-muted-foreground text-xs mt-0.5 font-sans">{t('yourPastReflections')}</p>
@@ -425,7 +426,7 @@ function HistoryPanel({
                 </button>
             </div>
 
-            <div className="px-4 py-3 border-b border-border">
+            <div className="px-4 py-3">
                 <button 
                     onClick={() => { onNew && onNew() }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-accent-foreground rounded-xl font-sans text-xs font-semibold hover:opacity-90 transition-all shadow-sm"
@@ -514,7 +515,7 @@ function DashboardSidebar({
     const router = useRouter()
     const { t } = useLanguage()
     return (
-        <aside className="w-[70px] h-full bg-card flex flex-col items-center py-6 border-r border-border shrink-0 z-20 transition-colors duration-300">
+        <aside className="w-[70px] h-full bg-card flex flex-col items-center py-6 shrink-0 z-20 transition-colors duration-300">
             {/* Logo */}
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/80 to-accent/20 shadow-[0_4px_15px_rgba(201,151,110,0.3)] mb-10 flex items-center justify-center">
                 <div className="w-4 h-4 bg-white/40 blur-[2px] rounded-full absolute mix-blend-overlay" />
@@ -1106,7 +1107,7 @@ export default function DashboardPage() {
                 setActiveConversationId(data.conversationId)
                 fetchConversations() // Refresh sidebar list to include the new real ID
             }
-        } catch (err: any) {
+        } catch (err) {
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 type: 'system',
@@ -1133,15 +1134,22 @@ export default function DashboardPage() {
                     },
                     body: JSON.stringify({ id })
                 })
-                if (response.ok) {
+                
+                const data = await response.json()
+                
+                if (response.ok && data.success) {
                     setConversations(prev => prev.filter(c => c.id !== id))
                     if (activeConversationId === id) {
                         setActiveConversationId(null)
                         setMessages([])
                     }
+                    toast.success(t('releasedReflection') || 'Reflection released to the universe')
+                } else {
+                    toast.error(data.detail || 'Failed to release reflection')
                 }
             } catch (e) {
                 console.error('Delete error:', e)
+                toast.error('An error occurred while releasing the reflection')
             }
         }
     }
@@ -1173,7 +1181,7 @@ export default function DashboardPage() {
 
     return (
         <div className="h-[100dvh] w-full bg-background flex items-center justify-center p-0 md:p-4 lg:p-6 overflow-hidden transition-colors duration-300">
-            <div className="bg-card md:rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border-0 md:border border-border transition-colors duration-300">
+            <div className="bg-card md:rounded-[2.5rem] w-full h-full flex overflow-hidden relative shadow-[0_10px_60px_rgba(0,0,0,0.05)] border-0 md:border-0 transition-colors duration-300">
                 {/* Sidebar */}
                 <DashboardSidebar
                     userName={userName}
@@ -1193,7 +1201,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full border-r border-border"
+                            className="h-full"
                         >
                             <HistoryPanel
                                 onClose={() => setActivePanel(null)}
@@ -1215,7 +1223,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full border-r border-border"
+                            className="h-full"
                         >
                             <BhajanPanel 
                                 onClose={() => setActivePanel(null)} 
@@ -1231,7 +1239,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full border-r border-border"
+                            className="h-full"
                         >
                             <ShlokGuidePanel
                                 onClose={() => setActivePanel(null)}
@@ -1246,7 +1254,7 @@ export default function DashboardPage() {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: -20, opacity: 0 }}
                             transition={{ duration: 0.3, ease: 'easeOut' }}
-                            className="h-full border-r border-border"
+                            className="h-full"
                         >
                             <SettingsPanel
                                 onClose={() => setActivePanel(null)}
@@ -1341,7 +1349,7 @@ export default function DashboardPage() {
                     <div className="px-6 md:px-12 lg:px-24 pb-8 pt-4">
                         <div className="max-w-[800px] mx-auto relative group">
 
-                    <div className="flex items-center gap-3 bg-card border border-border rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:border-accent/30 transition-colors relative z-50">
+                    <div className="flex items-center gap-3 bg-card rounded-full pl-6 pr-3 py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] focus-within:ring-1 focus-within:ring-accent/20 transition-colors relative z-50">
 
                         <input
                             type="text"

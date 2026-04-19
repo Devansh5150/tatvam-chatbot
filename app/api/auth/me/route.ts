@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
                 name: profile?.name || 'Seeker'
             }
         })
-    } catch (err: any) {
+    } catch (err) {
         console.error('Me API error:', err)
         return NextResponse.json(
             { detail: err.message || 'Something went wrong' },

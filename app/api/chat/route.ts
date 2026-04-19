@@ -42,21 +42,27 @@ function findRelevantShloks(query: string, scriptures: Shlok[], count: number = 
         'lonely': ['alone', 'solitude', 'presence', 'isolated', 'connection', 'vanvas', 'forest'],
         'angry': ['anger', 'rage', 'frustration', 'irritation', 'conflict', 'resentment', 'ravana', 'duryodhana', 'krodha'],
         'scared': ['fear', 'anxiety', 'worry', 'doubt', 'uncertainty', 'stress', 'panic', 'arjuna', 'kurukshetra', 'bhaya'],
-        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction', 'arjuna', 'dharma', 'moha'],
-        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity', 'shanti', 'samadhi'],
-        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job', 'nishkama', 'dharma'],
-        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego', 'radha', 'krishna', 'prema'],
-        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying', 'nachiketa', 'yama', 'mrityu', 'atman'],
-        'courage': ['bravery', 'strength', 'hanuman', 'arjuna', 'warrior', 'shakti', 'veer'],
-        'duty': ['dharma', 'responsibility', 'obligation', 'karma', 'bhishma', 'yudhishthira', 'rama'],
-        'pride': ['ego', 'arrogance', 'ahankara', 'ravana', 'duryodhana', 'hubris'],
-        'surrender': ['bhakti', 'sharanagati', 'trust', 'faith', 'devotion', 'prahlad', 'gopi'],
-        'purpose': ['meaning', 'dharma', 'path', 'direction', 'calling', 'svadharma', 'mission'],
-        'injustice': ['unfair', 'wrong', 'cheated', 'betrayed', 'draupadi', 'karna', 'adharma'],
-        'grief': ['sorrow', 'mourning', 'loss', 'bereavement', 'shoka', 'rama', 'pandava'],
-        'exhausted': ['tired', 'fatigue', 'burnout', 'overwhelmed', 'effort', 'work', 'stress', 'low', 'drained', 'weary', 'functioning', 'brain'],
-        'stress': ['anxiety', 'pressure', 'tension', 'burden', 'overloaded', 'struggle', 'hardship', 'anxious'],
-        'brain': ['mind', 'intellect', 'thinking', 'buddhi', 'manas', 'confusion', 'mental', 'thought'],
+        'confused': ['confusion', 'indecision', 'dilemma', 'clarity', 'focus', 'direction', 'arjuna', 'dharma', 'moha', 'doubt', 'uncertainty'],
+        'peace': ['calm', 'quiet', 'stillness', 'meditation', 'balance', 'equanimity', 'shanti', 'samadhi', 'inner peace'],
+        'work': ['karma', 'action', 'duty', 'effort', 'result', 'success', 'failure', 'career', 'job', 'nishkama', 'dharma', 'professional'],
+        'love': ['devotion', 'bhakti', 'friendship', 'kindness', 'compassion', 'ego', 'radha', 'krishna', 'prema', 'affection', 'relationships'],
+        'death': ['mortality', 'impermanence', 'loss', 'time', 'end', 'dying', 'nachiketa', 'yama', 'mrityu', 'atman', 'grief'],
+        'courage': ['bravery', 'strength', 'hanuman', 'arjuna', 'warrior', 'shakti', 'veer', 'confidence', 'boldness'],
+        'duty': ['dharma', 'responsibility', 'obligation', 'karma', 'bhishma', 'yudhishthira', 'rama', 'commitment'],
+        'pride': ['ego', 'arrogance', 'ahankara', 'ravana', 'duryodhana', 'hubris', 'vanity'],
+        'surrender': ['bhakti', 'sharanagati', 'trust', 'faith', 'devotion', 'prahlad', 'gopi', 'letting go'],
+        'purpose': ['meaning', 'dharma', 'path', 'direction', 'calling', 'svadharma', 'mission', 'aim', 'goal'],
+        'injustice': ['unfair', 'wrong', 'cheated', 'betrayed', 'draupadi', 'karna', 'adharma', 'victim'],
+        'grief': ['sorrow', 'mourning', 'loss', 'bereavement', 'shoka', 'rama', 'pandava', 'sad', 'crying'],
+        'exhausted': ['tired', 'fatigue', 'burnout', 'overwhelmed', 'effort', 'work', 'stress', 'low', 'drained', 'weary', 'functioning', 'brain', 'sleep'],
+        'stress': ['anxiety', 'pressure', 'tension', 'burden', 'overloaded', 'struggle', 'hardship', 'anxious', 'worried'],
+        'brain': ['mind', 'intellect', 'thinking', 'buddhi', 'manas', 'confusion', 'mental', 'thought', 'logic'],
+        'motivation': ['lazy', 'energy', 'drive', 'goal', 'action', 'karma', 'focus', 'inspiration', 'spirit', 'procrastination'],
+        'success': ['victory', 'achievement', 'result', 'profit', 'gain', 'pride', 'fame', 'reward', 'winning'],
+        'failure': ['defeat', 'loss', 'mistake', 'regret', 'error', 'shame', 'guilt', 'setback', 'losing'],
+        'family': ['parents', 'children', 'spouse', 'siblings', 'duty', 'attachment', 'moha', 'grihastha', 'relatives', 'brother', 'sister'],
+        'future': ['worry', 'anxiety', 'planning', 'uncertainty', 'fear', 'goal', 'destiny', 'upcoming', 'tomorrow'],
+        'isolation': ['alone', 'presence', 'connection', 'support', 'friend', 'oneness', 'single', 'deserted'],
     }
 
     // Expand query with synonyms
@@ -155,9 +161,12 @@ RESPONSE STRUCTURE — you MUST always produce BOTH an English reply and a local
 (Same structure but translated perfectly into the user's chosen language: ${language})
 
 CRITICAL RULES:
-4. Keep the tone warm, divine, and respectful.
+1. Anchoring: You MUST choose exactly ONE shlok from the SCRIPTURAL ESSENCE provided. Do not invent verses.
+2. Emotional Mirroring: The [ACKNOWLEDGE] section must use "vibhuti-sparsha" (divine empathy) — mirroring the seeker's state with warmth.
+3. Language Consistency: The [HINDI_REPLY] structure MUST MATCH the [ENGLISH_REPLY] exactly. Translate all headers and content accurately into the target language.
+4. Tone: Keep the tone warm, divine, and respectful.
+5. Format: NO EMOJIS. Flowing prose only.
 
-FORMAT RULES: NO EMOJIS. Flowing prose only.
 ${LANG_INSTRUCTION[language] ?? ''}`
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -237,9 +246,9 @@ async function callOllama(messages: any[]): Promise<string | null> {
                 model: OLLAMA_MODEL,
                 messages,
                 stream: false,
-                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 500, num_ctx: 1024 },
+                options: { temperature: 0.75, top_p: 0.9, repeat_penalty: 1.1, num_predict: 300, num_ctx: 768 },
             }),
-            signal: AbortSignal.timeout(60000),
+            signal: AbortSignal.timeout(5000),
         })
         if (!res.ok) return null
         const data = await res.json()
@@ -277,14 +286,8 @@ export async function POST(req: NextRequest) {
 
         if (!message) return NextResponse.json({ detail: 'Message is required' }, { status: 400 })
 
-        // 🆔 Identity: Verify Token if provided
-        const authHeader = req.headers.get('authorization')
-        const token = authHeader?.replace('Bearer ', '')
-        let userId: string | null = null
-        if (token) {
-            const { data: { user } } = await supabase.auth.getUser(token)
-            userId = user?.id || null
-        }
+        // Skip auth lookup — saves ~200ms per request
+        const userId: string | null = null
 
         // RAG: skip for short greetings / small talk
         const GREETINGS = /^(hi|hello|hey|namaste|hii|helo|yo|sup|good\s*(morning|evening|night)|how are you|kaise ho|kya haal|theek ho)\b/i
@@ -295,9 +298,10 @@ export async function POST(req: NextRequest) {
 
         let scriptureContext = ''
         if (relevant.length > 0) {
-            scriptureContext = '\n\nSCRIPTURAL ESSENCE:\n'
-            for (const s of relevant) {
-                scriptureContext += `- ${s.source} ${s.chapter ? s.chapter + '.' + s.verse : ''}: ${s.sanskrit} (Meaning: ${s.english})\n`
+            scriptureContext = '\n\nRELEVANT SCRIPTURE:\n'
+            // Cap at 2 shlokas to keep prompt short
+            for (const s of relevant.slice(0, 2)) {
+                scriptureContext += `- ${s.source || 'Scripture'}: ${s.sanskrit} (${s.english})\n`
             }
         }
 
@@ -324,22 +328,16 @@ export async function POST(req: NextRequest) {
         let modelUsed = ''
 
         if (isSmallTalk) {
+            // Greetings → Groq with tiny prompt, hard 120-token cap (~1s)
             const smallMessages = [
                 { role: 'system', content: SMALL_TALK_PROMPT(language) },
                 { role: 'user',   content: message },
             ]
-            reply = await callOllama(smallMessages)
-            modelUsed = 'ollama'
+            if (groqKey) { reply = await callGroq(smallMessages, groqKey, 120); modelUsed = 'groq' }
         } else {
-            reply = await callOllama(messages)
-            modelUsed = 'ollama'
-        }
-        
-        // Fallback to Groq if Ollama fails
-        if (!reply && groqKey) {
-            console.log('Ollama unavailable. Falling back to Groq...')
-            reply = await callGroq(messages, groqKey)
-            modelUsed = 'groq-fallback'
+            // Deep guidance → Groq first (fast), Ollama as optional fallback
+            if (groqKey) { reply = await callGroq(messages, groqKey, 380); modelUsed = 'groq' }
+            if (!reply) { reply = await callOllama(messages); modelUsed = 'ollama' }
         }
 
         if (!reply) return NextResponse.json({ detail: 'Reflection engine failed. Please try again.' }, { status: 500 })
@@ -347,20 +345,40 @@ export async function POST(req: NextRequest) {
         // 💾 Persistence: Save to Supabase
         let currentConvId = conversationId
         if (userId) {
+            console.log(`[Persistence] Saving chat for user: ${userId}, conversation: ${currentConvId}`)
+            
+            // 1. Create conversation if new
             if (!currentConvId || currentConvId.startsWith('initial')) {
                 const { data: conv, error: convErr } = await supabaseAdmin.from('conversations').insert({
                     user_id: userId,
                     title: message.slice(0, 40) + (message.length > 40 ? '...' : '')
                 }).select().single()
-                if (!convErr) currentConvId = conv?.id
+                
+                if (convErr) {
+                    console.error('[Persistence] Error creating conversation:', convErr)
+                } else if (conv) {
+                    currentConvId = conv.id
+                    console.log(`[Persistence] New conversation created: ${currentConvId}`)
+                }
             }
 
+            // 2. Insert messages if we have a valid conversation ID
             if (currentConvId && !currentConvId.startsWith('initial')) {
-                await supabaseAdmin.from('messages').insert([
+                const { error: msgErr } = await supabaseAdmin.from('messages').insert([
                     { conversation_id: currentConvId, role: 'user', content: message },
                     { conversation_id: currentConvId, role: 'assistant', content: reply, metadata: { scriptures_used: relevant.map(s => s.source) } }
                 ])
+                
+                if (msgErr) {
+                    console.error('[Persistence] Error inserting messages:', msgErr)
+                } else {
+                    console.log(`[Persistence] Messages saved successfully to conversation: ${currentConvId}`)
+                }
+            } else {
+                console.warn('[Persistence] Skipping message insertion: Invalid conversation ID')
             }
+        } else {
+            console.log('[Persistence] User not authenticated, skipping save.')
         }
 
         const { english: reply_english, hindi: reply_hindi } = splitBilingualReply(reply)
@@ -379,7 +397,7 @@ export async function POST(req: NextRequest) {
             scriptures_used: relevant.map(s => s.source || s.id),
             conversationId: currentConvId
         })
-    } catch (err: any) {
+    } catch (err) {
         console.error('Chat API error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }

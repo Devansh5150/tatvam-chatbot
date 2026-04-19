@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
             access_token: authData.session?.access_token,
             refresh_token: authData.session?.refresh_token
         })
-    } catch (err: any) {
+    } catch (err) {
         console.error('Login error:', err)
         return NextResponse.json(
             { detail: err.message || 'Something went wrong' },

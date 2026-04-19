@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
             access_token: sessionData.session?.access_token,
             refresh_token: sessionData.session?.refresh_token
         })
-    } catch (err: any) {
+    } catch (err) {
         console.error('Signup error:', err)
         return NextResponse.json(
             { detail: err.message || 'Something went wrong' },

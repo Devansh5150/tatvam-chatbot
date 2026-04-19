@@ -130,7 +130,7 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
         })
 
         return NextResponse.json(formatted)
-    } catch (err: any) {
+    } catch (err) {
         console.error('Conversations fetch error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
         if (convError) throw convError
 
         return NextResponse.json(conv)
-    } catch (err: any) {
+    } catch (err) {
         console.error('Conversation creation error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }
@@ -184,17 +184,40 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ detail: 'Invalid session' }, { status: 401 })
         }
 
-        // Delete conversation (Cascade will handle messages)
-        const { error: delError } = await supabaseAdmin
-            .from('conversations')
+        // Delete associated messages first (Manual Cascade)
+        console.log(`[Delete] Attempting to delete messages for conversation: ${conversationId}`)
+        const { error: msgDelError } = await supabaseAdmin
+            .from('messages')
             .delete()
+            .eq('conversation_id', conversationId)
+
+        if (msgDelError) {
+            console.error(`[Delete] Error deleting messages for conversation ${conversationId}:`, msgDelError)
+            // We continue anyway to attempt conversation deletion, as messages might already be empty
+        }
+
+        // Delete conversation
+        console.log(`[Delete] Attempting to delete conversation: ${conversationId} for user: ${user.id}`)
+        const { error: delError, count } = await supabaseAdmin
+            .from('conversations')
+            .delete({ count: 'exact' })
             .eq('id', conversationId)
             .eq('user_id', user.id) // Ensure security
 
-        if (delError) throw delError
+        if (delError) {
+            console.error(`[Delete] Error deleting conversation ${conversationId}:`, delError)
+            throw delError
+        }
+
+        if (count === 0) {
+            console.warn(`[Delete] No conversation found with ID ${conversationId} for user ${user.id}`)
+            return NextResponse.json({ success: false, detail: 'Reflection not found or already released.' })
+        }
+
+        console.log(`[Delete] Successfully deleted conversation: ${conversationId}`)
 
         return NextResponse.json({ success: true })
-    } catch (err: any) {
+    } catch (err) {
         console.error('Conversation delete error:', err)
         return NextResponse.json({ detail: err.message }, { status: 500 })
     }

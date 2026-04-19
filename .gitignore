@@ -31,3 +31,7 @@ next-env.d.ts
 
 # python backend (unused)
 /backend/
+
+# local dev / agent data
+/scratch/
+/.claude/

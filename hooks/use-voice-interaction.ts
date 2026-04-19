@@ -32,7 +32,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     if (!recognitionRef.current || !isActiveRef.current) return
     try {
       recognitionRef.current.start()
-    } catch (e: any) {
+    } catch (e) {
       if (e.name === 'InvalidStateError') return // already running — fine
       console.error('STT start error:', e)
       // Retry after a short delay for transient errors

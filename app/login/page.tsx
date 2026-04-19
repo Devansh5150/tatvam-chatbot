@@ -41,7 +41,7 @@ export default function LoginPage() {
             localStorage.setItem('tatvam_token', data.access_token)
             localStorage.setItem('tatvam_user', JSON.stringify(data.user))
             window.location.href = '/dashboard'
-        } catch (err: any) {
+        } catch (err) {
             setError(err.message)
             setIsLoading(false)
         }
@@ -50,9 +50,9 @@ export default function LoginPage() {
     return (
         <main className="min-h-screen bg-[#080706] flex flex-col items-center justify-center relative overflow-hidden py-12">
             {/* Header - Fixed to top for better centering of the portal effect */}
-            <div className="absolute top-12 z-20 w-full text-center pointer-events-none">
+            <div className="absolute top-10 left-10 z-20 pointer-events-none">
                 <a href="/" className="inline-block pointer-events-auto" aria-label="Return to home">
-                    <span className="font-serif text-foreground/40 text-sm tracking-[0.3em] uppercase hover:text-accent transition-colors">
+                    <span className="font-serif text-foreground/40 text-[10px] md:text-sm tracking-[0.3em] uppercase hover:text-accent transition-colors">
                         ← Tatvam
                     </span>
                 </a>
@@ -187,7 +187,7 @@ export default function LoginPage() {
                                         localStorage.setItem('tatvam_token', data.access_token)
                                         localStorage.setItem('tatvam_user', JSON.stringify(data.user))
                                         window.location.href = '/dashboard'
-                                    } catch (err: any) {
+                                    } catch (err) {
                                         setError('Dev Login Failed: ' + err.message)
                                         setIsLoading(false)
                                     }

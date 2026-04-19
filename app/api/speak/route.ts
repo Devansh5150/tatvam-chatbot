@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     return new NextResponse(response.body, { headers: { 'Content-Type': 'audio/mpeg' } })
-  } catch (err: any) {
+  } catch (err) {
     return NextResponse.json({ detail: err.message }, { status: 500 })
   }
 }
