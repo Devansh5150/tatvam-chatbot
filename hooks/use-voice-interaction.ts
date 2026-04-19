@@ -27,9 +27,16 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const isActiveRef     = useRef(false)   // true = we WANT recognition running
   const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const isSpeakingRef   = useRef(false)
+  
+  // Keep the ref in sync with state for use in callbacks
+  useEffect(() => { 
+    isSpeakingRef.current = isSpeaking 
+  }, [isSpeaking])
+
   // ── Safe start (catches InvalidStateError if already running) ──────────
   const safeStart = useCallback(() => {
-    if (!recognitionRef.current || !isActiveRef.current || isSpeaking) return
+    if (!recognitionRef.current || !isActiveRef.current || isSpeakingRef.current) return
     
     try {
       recognitionRef.current.start()
@@ -37,11 +44,11 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       if ((e as DOMException).name === 'InvalidStateError') return // already running — fine
       console.warn('STT start error:', (e as Error).message)
       // Exponential backoff or just a longer delay for retries
-      if (isActiveRef.current && !isSpeaking) {
+      if (isActiveRef.current && !isSpeakingRef.current) {
         retryTimerRef.current = setTimeout(safeStart, 1000)
       }
     }
-  }, [isSpeaking])
+  }, []) // Removed deps to keep it stable
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -93,7 +100,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     recognition.onend = () => {
       setIsListening(false)
       // Only restart if we still want it active AND we aren't currently speaking
-      if (isActiveRef.current && !isSpeaking) {
+      if (isActiveRef.current && !isSpeakingRef.current) {
         retryTimerRef.current = setTimeout(safeStart, 800)
       }
     }
@@ -108,7 +115,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       synthRef.current?.cancel()
       audioRef.current?.pause()
     }
-  }, [safeStart, isSpeaking])
+  }, [safeStart]) // Stable deps
 
   // ── Public controls ──────────────────────────────────────────────────────
 
