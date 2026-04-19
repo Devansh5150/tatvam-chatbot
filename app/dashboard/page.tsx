@@ -86,12 +86,11 @@ const DAILY_SHLOKS = [
 type SidebarPanel = 'bhajans' | 'shlok_guide' | 'settings' | 'history' | null
 
 const BHAJANS = [
-    { title: 'Om Namah Shivaya', artist: 'Suresh Wadkar', src: 'https://archive.org/download/OmNamahShivayaBySureshWadkar/Om%20Namah%20Shivaya%20by%20Suresh%20Wadkar.mp3' },
-    { title: 'Hare Krishna Mahamantra', artist: 'Classic Chant', src: 'https://archive.org/download/HareKrishnaMahaMantra/Hare%20Krishna%20Maha%20Mantra.mp3' },
-    { title: 'Gayatri Mantra', artist: 'Traditional', src: 'https://archive.org/download/GayatriMantra_201701/Gayatri%20Mantra.mp3' },
-    { title: 'Hanuman Chalisa', artist: 'Gulshan Kumar', src: 'https://archive.org/download/hanumanchalisa-gulshanhkumar/Hanuman%20Chalisa%20-%20Gulshan%20Kumar.mp3' },
-    { title: 'Raghupati Raghava', artist: 'Jagjit Singh', src: 'https://archive.org/download/RaghupatiRaghavaRajaRamByJagjitSingh/Raghupati%20Raghava%20Raja%20Ram%20by%20Jagjit%20Singh.mp3' },
-    { title: 'Achyutam Keshavam', artist: 'Traditional', src: 'https://archive.org/download/AchyutamKeshavamKrishnaDamodaram/Achyutam%20Keshavam%20Krishna%20Damodaram.mp3' },
+    { title: 'Om Namah Shivaya', artist: 'Daily Chants', src: '/audio/om-namah-shivaya.mp3' },
+    { title: 'Hare Krishna Mahamantra', artist: 'ISKCON Kirtan', src: '/audio/hare-krishna.mp3' },
+    { title: 'Gayatri Mantra', artist: 'Anuradha Paudwal', src: '/audio/gayatri-mantra.mp3' },
+    { title: 'Hanuman Chalisa', artist: 'Traditional', src: '/audio/hanuman-chalisa.mp3' },
+    { title: 'Raghupati Raghava', artist: 'Traditional', src: '/audio/raghupati-raghava.mp3' },
 ]
 
 const SHLOK_GUIDE: { mood: string; emoji: string; shlok: string; source: string; meaning: string }[] = [
