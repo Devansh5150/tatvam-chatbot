@@ -129,7 +129,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       if (isActiveRef.current) {
         // VELOCITY CHECK: Only treat as a "failure" if it was NOT a voluntary silence timeout
         // and it ended suspiciousy fast (< 800ms)
-        const isMutedError = lastErrorRef.current === 'no-speech' || lastErrorRef.current === 'aborted'
+        const isMutedError = lastErrorRef.current === 'no-speech' || 
+                           lastErrorRef.current === 'aborted' || 
+                           lastErrorRef.current === 'network'
+        
         const hasActualError = lastErrorRef.current !== null && !isMutedError
 
         if (sessionDuration < 800 && hasActualError) {
