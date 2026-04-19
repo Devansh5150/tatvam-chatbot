@@ -29,9 +29,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const lastStartTimeRef = useRef<number>(0)
   const fastFailCountRef = useRef<number>(0)
 
-  const retryCountRef   = useRef(0)
-  const isSpeakingRef   = useRef(false)
-  const lastErrorRef    = useRef<string | null>(null)
+  const retryCountRef        = useRef(0)
+  const isSpeakingRef        = useRef(false)
+  const lastErrorRef         = useRef<string | null>(null)
+  const networkErrorCountRef = useRef(0)
   
   // Keep the ref in sync with state for use in callbacks
   useEffect(() => { 
@@ -86,8 +87,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       console.log('[Voice] STT started successfully.')
       setIsListening(true)
       setError(null)
-      retryCountRef.current = 0 // Reset on success
-      lastErrorRef.current = null
+      retryCountRef.current    = 0
+      fastFailCountRef.current = 0  // hardware works — clear crash history
+      networkErrorCountRef.current = 0
+      lastErrorRef.current     = null
     }
 
     recognition.onresult = (event: any) => {
@@ -126,40 +129,48 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       console.log(`[Voice] STT session ended. Duration: ${sessionDuration}ms`)
       setIsListening(false)
 
-      if (isActiveRef.current) {
-        // VELOCITY CHECK: Only treat as a "failure" if it was NOT a voluntary silence timeout
-        // and it ended suspiciousy fast (< 800ms)
-        const isMutedError = lastErrorRef.current === 'no-speech' || 
-                           lastErrorRef.current === 'aborted' || 
-                           lastErrorRef.current === 'network'
-        
-        const hasActualError = lastErrorRef.current !== null && !isMutedError
+      if (!isActiveRef.current) return
 
-        if (sessionDuration < 800 && hasActualError) {
-          fastFailCountRef.current++
-          console.warn(`[Voice] Fast-fail (Likely Crash) detected (${fastFailCountRef.current}/5)`)
-        } else {
-          // If it was just silence or a long session, reset the failure count
-          fastFailCountRef.current = 0 
-        }
-
-        if (fastFailCountRef.current >= 5) {
-          console.error('[Voice] Stability safeguard triggered.')
+      // ── Network errors: handled separately, never affect crash detection ──
+      if (lastErrorRef.current === 'network') {
+        networkErrorCountRef.current++
+        console.warn(`[Voice] Network error (${networkErrorCountRef.current}/4). Retrying...`)
+        if (networkErrorCountRef.current >= 4) {
           isActiveRef.current = false
-          setError('Microphone stability lost. Reconnecting in 5s...')
-          
-          // Auto-recovery instead of permanent lock
-          setTimeout(() => {
-            setError(null)
-            fastFailCountRef.current = 0
-            if (isActiveRef.current) safeStart()
-          }, 5000)
+          networkErrorCountRef.current = 0
+          setError('Speech service unreachable. Check your connection and tap to retry.')
           return
         }
+        retryTimerRef.current = setTimeout(safeStart, 2000)
+        return
+      }
 
-        if (!isSpeakingRef.current) {
-          retryTimerRef.current = setTimeout(safeStart, 1000)
-        }
+      // ── Crash detection (hardware/browser errors only) ────────────────────
+      networkErrorCountRef.current = 0  // reset on any non-network session
+      const isMutedError  = lastErrorRef.current === 'no-speech' || lastErrorRef.current === 'aborted'
+      const hasActualError = lastErrorRef.current !== null && !isMutedError
+
+      if (sessionDuration < 800 && hasActualError) {
+        fastFailCountRef.current++
+        console.warn(`[Voice] Fast-fail (Likely Crash) detected (${fastFailCountRef.current}/5)`)
+      } else {
+        fastFailCountRef.current = 0
+      }
+
+      if (fastFailCountRef.current >= 5) {
+        console.error('[Voice] Stability safeguard triggered.')
+        isActiveRef.current = false
+        setError('Microphone stability lost. Reconnecting in 5s...')
+        setTimeout(() => {
+          setError(null)
+          fastFailCountRef.current = 0
+          if (isActiveRef.current) safeStart()
+        }, 5000)
+        return
+      }
+
+      if (!isSpeakingRef.current) {
+        retryTimerRef.current = setTimeout(safeStart, 1000)
       }
     }
 
@@ -182,9 +193,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
     
     // Manual start resets everything
-    isActiveRef.current = true
-    retryCountRef.current = 0
-    fastFailCountRef.current = 0
+    isActiveRef.current          = true
+    retryCountRef.current        = 0
+    fastFailCountRef.current     = 0
+    networkErrorCountRef.current = 0
     setError(null)
     
     recognitionRef.current.lang = lang
