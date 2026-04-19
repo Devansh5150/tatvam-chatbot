@@ -41,9 +41,9 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const safeStart = useCallback(() => {
     if (!recognitionRef.current || !isActiveRef.current || isSpeakingRef.current) return
     
-    if (retryCountRef.current >= 3) {
-      console.error('[Voice] Auto-stopped: High failure rate (3 strikes). Please refresh.')
-      setError('Connection with microphone unstable. Please refresh page.')
+    if (retryCountRef.current >= 6) {
+      console.error('[Voice] Auto-stopped: High failure rate (6 strikes). Tap orb to retry.')
+      setError('Connection with microphone unstable. Tap the monk orb to retry.')
       isActiveRef.current = false
       setIsListening(false)
       return
@@ -105,7 +105,9 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       
       if (err === 'no-speech' || err === 'aborted') return  // normal, onend will handle if isActive
 
-      retryCountRef.current++ // Count as a strike
+      if (err !== 'network') {
+        retryCountRef.current++ // Only count non-network errors as potential crashes
+      }
 
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         const msg = err === 'not-allowed' ? 'Microphone permission denied.' : 'Speech service blocked.'
@@ -171,7 +173,13 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const startListening = useCallback((lang: string = 'en-IN') => {
     if (!recognitionRef.current) return
     if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
+    
+    // Manual start resets everything
     isActiveRef.current = true
+    retryCountRef.current = 0
+    fastFailCountRef.current = 0
+    setError(null)
+    
     recognitionRef.current.lang = lang
     safeStart()
   }, [safeStart])
