@@ -223,6 +223,26 @@ function splitBilingualReply(reply: string): { english: string; hindi: string } 
 
 const OLLAMA_URL   = process.env.OLLAMA_URL   || 'http://localhost:11434'
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'tatvam'
+const PY_BACKEND_URL = 'http://localhost:8000/v1/chat/completions'
+
+async function callPythonServer(messages: any[]): Promise<string | null> {
+    try {
+        const res = await fetch(PY_BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'tatvam-local',
+                messages,
+                temperature: 0.7,
+                max_tokens: 1024,
+            }),
+            signal: AbortSignal.timeout(5000), // Quick timeout for local server
+        })
+        if (!res.ok) return null
+        const data = await res.json()
+        return data.choices?.[0]?.message?.content?.trim() || null
+    } catch { return null }
+}
 
 async function callOllama(messages: any[]): Promise<string | null> {
     try {
@@ -322,8 +342,11 @@ export async function POST(req: NextRequest) {
         if (isSmallTalk) {
             const smallMessages = [{ role: 'system', content: SMALL_TALK_PROMPT(language) }, { role: 'user', content: message }]
             if (groqKey) { reply = await callGroq(smallMessages, groqKey, 120); modelUsed = 'groq' }
+            if (!reply) { reply = await callPythonServer(smallMessages); modelUsed = 'py-backend' }
+            if (!reply) { reply = await callOllama(smallMessages); modelUsed = 'ollama' }
         } else {
             if (groqKey) { reply = await callGroq(messages, groqKey, 380); modelUsed = 'groq' }
+            if (!reply) { reply = await callPythonServer(messages); modelUsed = 'py-backend' }
             if (!reply) { reply = await callOllama(messages); modelUsed = 'ollama' }
         }
 

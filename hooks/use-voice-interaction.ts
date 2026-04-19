@@ -27,7 +27,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const isActiveRef     = useRef(false)   // true = we WANT recognition running
   const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isSpeakingRef   = useRef(false)
+  const retryCountRef   = useRef(0)
   
   // Keep the ref in sync with state for use in callbacks
   useEffect(() => { 
@@ -38,11 +38,22 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const safeStart = useCallback(() => {
     if (!recognitionRef.current || !isActiveRef.current || isSpeakingRef.current) return
     
+    if (retryCountRef.current >= 3) {
+      console.error('[Voice] Auto-stopped: High failure rate (3 strikes). Please refresh.')
+      setError('Connection with microphone unstable. Please refresh page.')
+      isActiveRef.current = false
+      setIsListening(false)
+      return
+    }
+
     try {
+      console.log(`[Voice] Attempting STT start. (Try ${retryCountRef.current + 1}/3)`)
       recognitionRef.current.start()
     } catch (e) {
       if ((e as DOMException).name === 'InvalidStateError') return // already running — fine
       console.warn('STT start error:', (e as Error).message)
+      retryCountRef.current++
+      
       // Exponential backoff or just a longer delay for retries
       if (isActiveRef.current && !isSpeakingRef.current) {
         retryTimerRef.current = setTimeout(safeStart, 1000)
@@ -67,8 +78,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     recognition.lang           = 'en-IN'
 
     recognition.onstart = () => {
+      console.log('[Voice] STT started successfully.')
       setIsListening(true)
       setError(null)
+      retryCountRef.current = 0 // Reset on success
     }
 
     recognition.onresult = (event: any) => {
@@ -84,7 +97,11 @@ export function useVoiceInteraction(): VoiceInteractionResult {
 
     recognition.onerror = (event: any) => {
       const { error: err } = event
+      console.warn('[Voice] STT error:', err)
+      
       if (err === 'no-speech' || err === 'aborted') return  // normal, onend will handle if isActive
+
+      retryCountRef.current++ // Count as a strike
 
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         const msg = err === 'not-allowed' ? 'Microphone permission denied.' : 'Speech service blocked.'
@@ -93,11 +110,10 @@ export function useVoiceInteraction(): VoiceInteractionResult {
         setIsListening(false)
         return
       }
-
-      console.warn('STT error status:', err)
     }
 
     recognition.onend = () => {
+      console.log('[Voice] STT session ended.')
       setIsListening(false)
       // Only restart if we still want it active AND we aren't currently speaking
       if (isActiveRef.current && !isSpeakingRef.current) {
