@@ -29,16 +29,19 @@ export function useVoiceInteraction(): VoiceInteractionResult {
 
   // ── Safe start (catches InvalidStateError if already running) ──────────
   const safeStart = useCallback(() => {
-    if (!recognitionRef.current || !isActiveRef.current) return
+    if (!recognitionRef.current || !isActiveRef.current || isSpeaking) return
+    
     try {
       recognitionRef.current.start()
     } catch (e) {
       if ((e as DOMException).name === 'InvalidStateError') return // already running — fine
-      console.error('STT start error:', e)
-      // Retry after a short delay for transient errors
-      retryTimerRef.current = setTimeout(safeStart, 400)
+      console.warn('STT start error:', (e as Error).message)
+      // Exponential backoff or just a longer delay for retries
+      if (isActiveRef.current && !isSpeaking) {
+        retryTimerRef.current = setTimeout(safeStart, 1000)
+      }
     }
-  }, [])
+  }, [isSpeaking])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -74,24 +77,24 @@ export function useVoiceInteraction(): VoiceInteractionResult {
 
     recognition.onerror = (event: any) => {
       const { error: err } = event
-      if (err === 'no-speech' || err === 'aborted') return  // normal, onend will restart
+      if (err === 'no-speech' || err === 'aborted') return  // normal, onend will handle if isActive
 
-      if (err === 'not-allowed') {
-        setError('Microphone permission denied. Please allow access.')
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        const msg = err === 'not-allowed' ? 'Microphone permission denied.' : 'Speech service blocked.'
+        setError(msg)
         isActiveRef.current = false
         setIsListening(false)
         return
       }
 
-      console.warn('STT error:', err)
-      // For network / audio-capture errors, let onend handle the retry
+      console.warn('STT error status:', err)
     }
 
     recognition.onend = () => {
       setIsListening(false)
-      if (isActiveRef.current) {
-        // Unexpected end (no-speech timeout, browser restart, etc.) — retry
-        retryTimerRef.current = setTimeout(safeStart, 250)
+      // Only restart if we still want it active AND we aren't currently speaking
+      if (isActiveRef.current && !isSpeaking) {
+        retryTimerRef.current = setTimeout(safeStart, 800)
       }
     }
 
@@ -105,7 +108,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       synthRef.current?.cancel()
       audioRef.current?.pause()
     }
-  }, [safeStart])
+  }, [safeStart, isSpeaking])
 
   // ── Public controls ──────────────────────────────────────────────────────
 
