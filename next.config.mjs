@@ -29,7 +29,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.groq.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: blob: https://*.ytimg.com; connect-src 'self' data: blob: https://*.supabase.co https://*.groq.com https://api.elevenlabs.io; media-src 'self' https: blob:; frame-src 'self' https://www.youtube.com https://youtube.com https://*.youtube.com https://*.youtube-nocookie.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.groq.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: blob: https://*.ytimg.com; connect-src 'self' data: blob: https://*.supabase.co https://*.groq.com https://api.elevenlabs.io https://api.sarvam.ai; media-src 'self' https: blob:; frame-src 'self' https://www.youtube.com https://youtube.com https://*.youtube.com https://*.youtube-nocookie.com;",
           },
         ],
       },
