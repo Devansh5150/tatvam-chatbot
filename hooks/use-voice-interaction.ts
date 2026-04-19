@@ -26,6 +26,8 @@ export function useVoiceInteraction(): VoiceInteractionResult {
   const audioRef        = useRef<HTMLAudioElement | null>(null)
   const isActiveRef     = useRef(false)   // true = we WANT recognition running
   const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastStartTimeRef = useRef<number>(0)
+  const fastFailCountRef = useRef<number>(0)
 
   const retryCountRef   = useRef(0)
   const isSpeakingRef   = useRef(false)
@@ -50,6 +52,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     try {
       console.log(`[Voice] Attempting STT start. (Try ${retryCountRef.current + 1}/3)`)
       recognitionRef.current.start()
+      lastStartTimeRef.current = Date.now()
     } catch (e) {
       if ((e as DOMException).name === 'InvalidStateError') return // already running — fine
       console.warn('STT start error:', (e as Error).message)
@@ -114,11 +117,30 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     }
 
     recognition.onend = () => {
-      console.log('[Voice] STT session ended.')
+      const sessionDuration = Date.now() - lastStartTimeRef.current
+      console.log(`[Voice] STT session ended. Duration: ${sessionDuration}ms`)
       setIsListening(false)
-      // Only restart if we still want it active AND we aren't currently speaking
-      if (isActiveRef.current && !isSpeakingRef.current) {
-        retryTimerRef.current = setTimeout(safeStart, 800)
+
+      if (isActiveRef.current) {
+        // VELOCITY CHECK: If it ended too fast (< 1.5s), count as a fast-fail
+        if (sessionDuration < 1500) {
+          fastFailCountRef.current++
+          console.warn(`[Voice] Fast-fail detected (${fastFailCountRef.current}/3)`)
+        } else {
+          fastFailCountRef.current = 0 // Reset on successful long session
+        }
+
+        if (fastFailCountRef.current >= 3) {
+          console.error('[Voice] Infinite loop detected. Killing session.')
+          isActiveRef.current = false
+          setError('Microphone stability lost. Please refresh.')
+          return
+        }
+
+        // Only restart if we still want it active AND we aren't currently speaking
+        if (!isSpeakingRef.current) {
+          retryTimerRef.current = setTimeout(safeStart, 800)
+        }
       }
     }
 
@@ -146,6 +168,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
 
   const stopListening = useCallback(() => {
     isActiveRef.current = false
+    fastFailCountRef.current = 0
     if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null }
     setIsListening(false)
     setInterimTranscript('')

@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "concurrently \"npm run dev:next\" \"npm run dev:backend\"",
-    "dev:next": "next dev",
-    "dev:backend": "python server.py",
+    "build": "next build",
+    "dev": "next dev",
     "lint": "eslint .",
     "start": "next start"
   },
