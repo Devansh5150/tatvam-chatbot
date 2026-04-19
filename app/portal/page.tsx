@@ -87,6 +87,7 @@ export default function PortalPage() {
   const [hindiAudioUrl, setHindiAudioUrl]     = useState<string | null>(null)
   const [replayReady, setReplayReady] = useState(false)
   const [apiError, setApiError]     = useState<string | null>(null)
+  const [textInput, setTextInput]   = useState('')
 
   const langRef   = useRef<Lang>('en-IN')
   useEffect(() => { langRef.current = lang }, [lang])
@@ -306,6 +307,13 @@ export default function PortalPage() {
     }
   }
 
+  const handleTextSubmit = () => {
+    const msg = textInput.trim()
+    if (!msg || isProcessingRef.current) return
+    setTextInput('')
+    handleConversation(msg)
+  }
+
   const handleOrbClick = () => {
     if (status === 'speaking') {
       btsCancelRef.current = true
@@ -467,6 +475,28 @@ export default function PortalPage() {
             </AnimatePresence>
           </div>
         </div>
+
+        {/* ── Text input fallback ── */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }} className="w-full max-w-sm px-4 mb-2">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm">
+            <input
+              type="text"
+              value={textInput}
+              onChange={e => setTextInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleTextSubmit()}
+              placeholder="Or type your question…"
+              disabled={status === 'thinking'}
+              className="flex-1 bg-transparent text-white/70 text-xs placeholder-white/20 outline-none disabled:opacity-40"
+            />
+            <button
+              onClick={handleTextSubmit}
+              disabled={!textInput.trim() || status === 'thinking'}
+              className="text-amber-400/60 hover:text-amber-400 disabled:opacity-30 transition-colors text-xs px-1"
+            >
+              ↵
+            </button>
+          </div>
+        </motion.div>
 
         {/* ── Bottom controls ── */}
         <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="flex items-center gap-3">

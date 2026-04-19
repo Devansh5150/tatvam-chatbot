@@ -164,7 +164,8 @@ export function useVoiceInteraction(): VoiceInteractionResult {
         setTimeout(() => {
           setError(null)
           fastFailCountRef.current = 0
-          if (isActiveRef.current) safeStart()
+          isActiveRef.current = true  // re-enable before retry
+          safeStart()
         }, 5000)
         return
       }
