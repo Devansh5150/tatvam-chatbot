@@ -130,16 +130,17 @@ export function useVoiceInteraction(): VoiceInteractionResult {
         // VELOCITY CHECK: Only treat as a "failure" if it was NOT a voluntary silence timeout
         // and it ended suspiciousy fast (< 800ms)
         const isMutedError = lastErrorRef.current === 'no-speech' || lastErrorRef.current === 'aborted'
-        
-        if (sessionDuration < 800 && !isMutedError) {
+        const hasActualError = lastErrorRef.current !== null && !isMutedError
+
+        if (sessionDuration < 800 && hasActualError) {
           fastFailCountRef.current++
-          console.warn(`[Voice] Fast-fail (Likely Crash) detected (${fastFailCountRef.current}/3)`)
+          console.warn(`[Voice] Fast-fail (Likely Crash) detected (${fastFailCountRef.current}/5)`)
         } else {
           // If it was just silence or a long session, reset the failure count
           fastFailCountRef.current = 0 
         }
 
-        if (fastFailCountRef.current >= 3) {
+        if (fastFailCountRef.current >= 5) {
           console.error('[Voice] Stability safeguard triggered.')
           isActiveRef.current = false
           setError('Microphone stability lost. Reconnecting in 5s...')
