@@ -31,6 +31,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
 
   const retryCountRef   = useRef(0)
   const isSpeakingRef   = useRef(false)
+  const lastErrorRef    = useRef<string | null>(null)
   
   // Keep the ref in sync with state for use in callbacks
   useEffect(() => { 
@@ -86,6 +87,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       setIsListening(true)
       setError(null)
       retryCountRef.current = 0 // Reset on success
+      lastErrorRef.current = null
     }
 
     recognition.onresult = (event: any) => {
@@ -102,6 +104,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
     recognition.onerror = (event: any) => {
       const { error: err } = event
       console.warn('[Voice] STT error:', err)
+      lastErrorRef.current = err
       
       if (err === 'no-speech' || err === 'aborted') return  // normal, onend will handle if isActive
 
@@ -126,7 +129,7 @@ export function useVoiceInteraction(): VoiceInteractionResult {
       if (isActiveRef.current) {
         // VELOCITY CHECK: Only treat as a "failure" if it was NOT a voluntary silence timeout
         // and it ended suspiciousy fast (< 800ms)
-        const isMutedError = error === 'no-speech' || error === 'aborted'
+        const isMutedError = lastErrorRef.current === 'no-speech' || lastErrorRef.current === 'aborted'
         
         if (sessionDuration < 800 && !isMutedError) {
           fastFailCountRef.current++
